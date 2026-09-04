@@ -1,10 +1,224 @@
 # Norrna
 
-轻量级转发面板：Web 管理多节点 Agent。普通 TCP/UDP 转发由官方 [Realm](https://github.com/zhboner/realm)（v2.9.6）完成，端口复用由 Agent 叠加。
+轻量级转发面板：Web 管多节点 Agent，普通 TCP/UDP 走官方 [Realm](https://github.com/zhboner/realm) v2.9.6，端口复用由 Agent 叠加。
 
-## 编译
+- 面板一键安装 / 更新 / 卸载
+- 节点复制命令即装，自动拉取 `norrna` 和官方 `realm`
+- 每条普通转发独立 Realm 进程，互不影响
 
-需要 Rust（建议 1.80+）：
+仓库：https://github.com/dododook/Norrna
+
+---
+
+## 快速开始
+
+### 1. 安装面板（root）
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_manager.sh) webport=3000 agentport=3001
+```
+
+自定义端口或数据目录：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_manager.sh) \
+  webport=8080 agentport=9000 datadir=/data/norrna
+```
+
+浏览器打开 `http://服务器IP:3000`，先创建管理员。
+
+脚本会同时把 Agent 二进制放到 `/etc/norrna-manager/norrna`，供面板一键部署下载。
+
+### 2. 安装 Agent
+
+面板 → 添加 Agent → 复制部署命令，在 **节点机** 上执行，例如：
+
+```bash
+bash <(curl -fsSL http://面板IP:3000/norrna_agent.sh) \
+  server=面板IP:3001 \
+  apikey=你的KEY \
+  dns=223.5.5.5:53,119.29.29.29:53
+```
+
+- Agent 和面板 **同一台**：把 `server=` 改成 `127.0.0.1:3001`，避免走公网 IP 被安全组拦住。
+- 节点在 **另一台**：面板机防火墙 / 云安全组放行 **3001**（和 Web 的 3000 不是同一个口）。
+
+面板里 Agent 变绿后即可创建转发。节点上还要放行你监听的业务端口。
+
+---
+
+## 路径和端口
+
+### 面板
+
+| 项 | 默认 |
+|---|---|
+| 程序 | `/etc/norrna-manager/norrna-manager` |
+| 给节点下载的 Agent | `/etc/norrna-manager/norrna` |
+| 数据 | `/etc/norrna-manager/data` |
+| Web | `http://IP:3000` |
+| Agent 端口 | `3001` |
+| systemd | `norrna-manager` |
+
+### Agent
+
+| 项 | 默认 |
+|---|---|
+| 程序 | `/etc/norrna/norrna` |
+| 官方 Realm | `/etc/norrna/realm` |
+| 全局配置（DNS/网络） | `/etc/norrna/norrna.conf` |
+| 实例数据 | `/etc/norrna/instances/` |
+| systemd | `norrna-agent` |
+
+---
+
+## 更新
+
+更新会从 GitHub `releases/latest` 拉最新二进制。面板和节点要成对升级，只换一边会出现连不上（日志里常见 `Decryption failed`）。
+
+### 更新面板
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_manager.sh) --update
+```
+
+等价：`update`。脚本会备份旧文件到 `/etc/norrna-manager/norrna-manager.bak`，并刷新旁边的 `norrna`。
+
+手动强制覆盖：
+
+```bash
+systemctl stop norrna-manager
+curl -fL -o /etc/norrna-manager/norrna-manager https://github.com/dododook/Norrna/releases/latest/download/norrna-manager
+curl -fL -o /etc/norrna-manager/norrna https://github.com/dododook/Norrna/releases/latest/download/norrna
+chmod +x /etc/norrna-manager/norrna-manager /etc/norrna-manager/norrna
+systemctl start norrna-manager
+/etc/norrna-manager/norrna-manager --version
+```
+
+### 更新 Agent
+
+在 **节点** 上：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_agent.sh) update
+```
+
+等价：`upgrade`。会备份 `/etc/norrna/norrna`，并重装官方 Realm。
+
+手动强制覆盖：
+
+```bash
+systemctl stop norrna-agent
+curl -fL -o /etc/norrna/norrna https://github.com/dododook/Norrna/releases/latest/download/norrna
+curl -fL -o /etc/norrna/realm  https://github.com/dododook/Norrna/releases/latest/download/realm
+chmod +x /etc/norrna/norrna /etc/norrna/realm
+systemctl start norrna-agent
+/etc/norrna/norrna --version
+/etc/norrna/realm -v
+```
+
+回滚面板：
+
+```bash
+mv /etc/norrna-manager/norrna-manager.bak /etc/norrna-manager/norrna-manager
+systemctl restart norrna-manager
+```
+
+---
+
+## 卸载
+
+### 卸载面板
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_manager.sh) --uninstall
+```
+
+等价：`uninstall`。需输入 `yes` 确认，会删掉服务和 `/etc/norrna-manager`（含数据）。
+
+### 卸载 Agent
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_agent.sh) uninstall
+```
+
+等价：`remove`。会停服务；是否删除 `/etc/norrna` 配置和实例数据会再问一次。
+
+---
+
+## 日常命令
+
+### 面板
+
+```bash
+systemctl start norrna-manager
+systemctl stop norrna-manager
+systemctl restart norrna-manager
+systemctl status norrna-manager
+journalctl -u norrna-manager -f
+```
+
+### Agent
+
+```bash
+systemctl start norrna-agent
+systemctl stop norrna-agent
+systemctl restart norrna-agent
+systemctl status norrna-agent
+journalctl -u norrna-agent -f
+```
+
+脚本帮助：
+
+```bash
+bash norrna_manager.sh --help
+bash norrna_agent.sh --help
+```
+
+---
+
+## 防火墙
+
+至少放行：
+
+| 端口 | 用途 |
+|---|---|
+| 3000/tcp（或你设的 webport） | 面板 Web |
+| 3001/tcp（或你设的 agentport） | Agent 连面板 |
+| 转发监听端口 | 业务流量 |
+
+示例（ufw）：
+
+```bash
+ufw allow 3000/tcp
+ufw allow 3001/tcp
+```
+
+---
+
+## 转发说明
+
+| multiplex_mode | 内核 | 含义 |
+|---|---|---|
+| 0 | 官方 Realm | 普通 listen ↔ remote，每条一个进程 |
+| 1 | overlay | 端口复用服务端（MySQL 握手伪装 `5.7.44-realm`） |
+| 2 | overlay | 端口复用客户端，带 `final_target` |
+
+UDP 复用魔数：`ZELAY_UDP`（兼容 `NORRNAUDP`）。
+
+被动模式（节点先监听，面板「服务器」去连）：
+
+```bash
+/etc/norrna/norrna api -c /etc/norrna/norrna.conf --port 9000 --key 你的KEY
+```
+
+Realm 查找顺序：`NORRNA_REALM` → `/etc/norrna/realm` → 与 `norrna` 同目录 → `PATH`。
+
+---
+
+## 编译（可选）
+
+需要 Rust 1.80+：
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -12,85 +226,54 @@ source "$HOME/.cargo/env"
 cargo build --release
 ```
 
-产物：
+产物：`target/release/norrna-manager`、`target/release/norrna`。
 
-- `target/release/norrna-manager` 面板
-- `target/release/norrna` Agent（调度 Realm / 端口复用）
-
-Agent 安装脚本会再下载官方 `realm` 到 `/etc/norrna/realm`。
-
-## 安装面板
-
-有 GitHub Release 后，任意机器可直接：
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_manager.sh) webport=3000 agentport=3001
-```
-
-或在本仓库编译后本地安装：
+本地脚本安装（不经过 GitHub）：
 
 ```bash
 bash scripts/norrna_manager.sh webport=3000 agentport=3001
+bash scripts/norrna_agent.sh server=127.0.0.1:3001 apikey=你的KEY
 ```
 
-默认：
-
-| 项 | 路径 / 端口 |
-|---|---|
-| 程序 | `/etc/norrna-manager/norrna-manager` |
-| 数据 | `/etc/norrna-manager/data` |
-| Web | `http://IP:3000` |
-| Agent 端口 | `3001` |
-
-打开面板创建管理员，再添加 Agent，复制部署命令。
-
-## 安装 Agent
-
-在节点上执行面板给出的命令。脚本默认从本仓库 Release 下载 `norrna`；若尚未发布 Release，则使用本地编译文件。
-
-或：
-
-```bash
-bash scripts/norrna_agent.sh server=面板IP:3001 apikey=你的KEY
-```
-
-Agent 安装到 `/etc/norrna`：
-
-| 项 | 路径 |
-|---|---|
-| Agent | `/etc/norrna/norrna` |
-| 官方 Realm | `/etc/norrna/realm` |
-| 全局配置（DNS/网络） | `/etc/norrna/norrna.conf` |
-| Realm 运行配置 | `/etc/norrna/realm-runtime.json` |
-
-## 手动启动（不装 systemd）
+不装 systemd 时：
 
 ```bash
 ./norrna-manager --webport 3000 --agentport 3001 --data-dir ./data
 ./norrna api --server 127.0.0.1:3001 --key YOUR_KEY
 ```
 
-## 转发内核
+---
 
-| multiplex_mode | 内核 | 含义 |
-|---|---|---|
-| 0 | 官方 Realm（每条转发独立进程） | 普通转发 listen ↔ remote |
-| 1 | overlay | 服务端：MySQL 握手伪装（`5.7.44-realm`），路由到客户端指定目标 |
-| 2 | overlay | 客户端：连复用口并带上 `final_target` |
+## 常见问题
 
-UDP 复用魔数：`ZELAY_UDP`（兼容旧的 `NORRNAUDP`）。
+**面板里 Agent 不是绿色**
 
-控制通道使用 ChaCha20-Poly1305（与原版同一把内置 PSK），带序号防重放。
+1. 节点：`journalctl -u norrna-agent -n 50 --no-pager`
+2. 面板：`journalctl -u norrna-manager -n 50 --no-pager`
+3. 两边 `--version` 必须一致
+4. 同机请用 `server=127.0.0.1:3001`；跨机放行 3001
 
-被动模式：`norrna api --port 9000 --key KEY`，面板「服务器」里填写该地址后点连接。
+日志 `TCP connected` 后马上 `Decryption failed` / `unexpected end of file`：面板和 Agent 版本不一致。按上面「更新」把两边都换成 `releases/latest`。
 
-可执行文件查找顺序：`NORRNA_REALM` → `/etc/norrna/realm` → 与 `norrna` 同目录 → `PATH`。
+**一键安装下到旧 Agent**
 
-## 目录
+确认面板旁有最新文件：
+
+```bash
+ls -lh /etc/norrna-manager/norrna-manager /etc/norrna-manager/norrna
+/etc/norrna-manager/norrna-manager --version
+/etc/norrna-manager/norrna --version
+```
+
+升级面板时务必连 `norrna` 一起换，或走 `--update`。
+
+---
+
+## 仓库结构
 
 ```
 crates/norrna-manager/  面板
-crates/norrna/          Agent + 转发
+crates/norrna/          Agent（调度 Realm / 端口复用）
 crates/norrna-proto/    控制协议
 scripts/                一键安装与 systemd
 ```
