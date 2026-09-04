@@ -1900,19 +1900,16 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
 
         async function checkAuthentication() {
             try {
-                const response = await fetch('/api/auth/me');
+                const response = await fetch('/api/auth/me', { credentials: 'same-origin' });
                 const result = await response.json();
-                console.log('Auth response:', result);
-
-                if (result.success && result.user) {
-                    currentUser = result.user;
-                    document.getElementById('currentUsername').textContent = result.user.username;
-                } else {
-                    window.location.href = '/login';
+                const user = result.user || result.data;
+                if (result.success && user && user.username) {
+                    currentUser = user;
+                    const el = document.getElementById('currentUsername');
+                    if (el) el.textContent = user.username;
                 }
             } catch (error) {
                 console.error('Auth error:', error);
-                window.location.href = '/login';
             }
         }
 
@@ -3556,7 +3553,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">Version 26.1.12</p>
+        <p style="color: var(--primary); margin: 0;">Version 26.1.13</p>
     </div>
 </div>
 
