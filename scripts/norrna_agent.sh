@@ -18,7 +18,7 @@ NC='\033[0m'
 
 # 默认配置
 INSTALL_DIR="/etc/norrna"
-BINARY_URL=""
+BINARY_URL="https://github.com/dododook/Norrna/releases/latest/download/norrna"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_NAME="norrna-agent"
 DEFAULT_DNS="223.5.5.5:53,119.29.29.29:53"
@@ -179,40 +179,50 @@ create_directories() {
     log_success "目录创建完成: $INSTALL_DIR"
 }
 
-# 安装Norrna二进制：BINARY_URL 有值则下载，否则拷贝本地文件
+find_local_norrna() {
+    local cand
+    for cand in \
+        "${SCRIPT_DIR}/norrna" \
+        "${SCRIPT_DIR}/../target/release/norrna" \
+        "${PWD}/norrna" \
+        "${PWD}/target/release/norrna" \
+        "/etc/norrna-manager/norrna"; do
+        if [[ -f "$cand" ]]; then
+            echo "$cand"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# 优先 GitHub Release，失败则用本地文件
 download_binary() {
-    log_info "安装Norrna程序..."
+    log_info "安装 Norrna 程序..."
     
     local dest="$INSTALL_DIR/norrna"
+    local ok=0
     if [[ -n "$BINARY_URL" ]]; then
         local tmp_file="/tmp/norrna_download"
-        if command -v wget >/dev/null 2>&1; then
-            wget -q --show-progress -O "$tmp_file" "$BINARY_URL"
+        log_info "尝试下载: $BINARY_URL"
+        if command -v wget >/dev/null 2>&1 && wget -q --show-progress -O "$tmp_file" "$BINARY_URL" && [[ -s "$tmp_file" ]]; then
+            ok=1
+        elif command -v curl >/dev/null 2>&1 && curl -fsSL -o "$tmp_file" "$BINARY_URL" && [[ -s "$tmp_file" ]]; then
+            ok=1
+        fi
+        if [[ "$ok" -eq 1 ]]; then
+            mv "$tmp_file" "$dest"
         else
-            curl -fsSL -o "$tmp_file" "$BINARY_URL"
+            log_warning "GitHub 下载失败（可能还没有 Release），改为使用本地文件"
+            rm -f "$tmp_file"
         fi
-        if [[ ! -s "$tmp_file" ]]; then
-            log_error "下载失败，请检查网络连接或URL是否正确"
-            log_info "下载地址: $BINARY_URL"
-            exit 1
-        fi
-        mv "$tmp_file" "$dest"
-    else
-        local src=""
-        for cand in \
-            "${SCRIPT_DIR}/norrna" \
-            "${SCRIPT_DIR}/../target/release/norrna" \
-            "${PWD}/norrna" \
-            "${PWD}/target/release/norrna" \
-            "/etc/norrna-manager/norrna"; do
-            if [[ -f "$cand" ]]; then
-                src="$cand"
-                break
-            fi
-        done
+    fi
+    if [[ "$ok" -eq 0 ]]; then
+        local src
+        src="$(find_local_norrna || true)"
         if [[ -z "$src" ]]; then
-            log_error "BINARY_URL 为空，且找不到本地 norrna 二进制"
-            log_info "把编译好的 norrna 放到脚本同目录，或设置 BINARY_URL"
+            log_error "无法获取 norrna 二进制"
+            log_info "下载地址: $BINARY_URL"
+            log_info "或把编译好的 norrna 放到脚本同目录"
             exit 1
         fi
         log_info "使用本地文件: $src"
@@ -414,7 +424,7 @@ update() {
     log_info "下载最新版本..."
     local tmp_file="/tmp/norrna_update_$$"
     
-    if wget -q --show-progress -O "$tmp_file" "$BINARY_URL"; then
+    if [[ -n "$BINARY_URL" ]] && wget -q --show-progress -O "$tmp_file" "$BINARY_URL"; then
         # 验证下载的文件
         if [ ! -s "$tmp_file" ]; then
             log_error "下载的文件为空"

@@ -19,6 +19,14 @@ cargo build --release
 
 ## 安装面板
 
+有 GitHub Release 后，任意机器可直接：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_manager.sh) webport=3000 agentport=3001
+```
+
+或在本仓库编译后本地安装：
+
 ```bash
 bash scripts/norrna_manager.sh webport=3000 agentport=3001
 ```
@@ -36,7 +44,9 @@ bash scripts/norrna_manager.sh webport=3000 agentport=3001
 
 ## 安装 Agent
 
-在节点上执行面板给出的命令，或：
+在节点上执行面板给出的命令。脚本默认从本仓库 Release 下载 `norrna`；若尚未发布 Release，则使用本地编译文件。
+
+或：
 
 ```bash
 bash scripts/norrna_agent.sh server=面板IP:3001 apikey=你的KEY

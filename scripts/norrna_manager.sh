@@ -18,7 +18,8 @@ DEFAULT_AGENT_PORT=3001
 INSTALL_DIR="/etc/norrna-manager"
 BINARY_NAME="norrna-manager"
 SERVICE_NAME="norrna-manager"
-DOWNLOAD_URL=""
+REPO_URL="https://github.com/dododook/Norrna"
+DOWNLOAD_URL="https://github.com/dododook/Norrna/releases/latest/download/norrna-manager"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 解析参数
@@ -109,7 +110,7 @@ ${BLUE}示例:${NC}
     bash norrna_manager.sh --uninstall
 
 ${BLUE}更多信息:${NC}
-    项目地址:
+    项目地址: https://github.com/dododook/Norrna
 EOF
 }
 
@@ -180,35 +181,45 @@ create_directory() {
     log_success "目录创建成功"
 }
 
-# 安装程序：DOWNLOAD_URL 有值则下载，否则拷贝本地编译产物
+find_local_bin() {
+    local name="$1"
+    local cand
+    for cand in \
+        "${SCRIPT_DIR}/${name}" \
+        "${SCRIPT_DIR}/../target/release/${name}" \
+        "${PWD}/${name}" \
+        "${PWD}/target/release/${name}"; do
+        if [[ -f "$cand" ]]; then
+            echo "$cand"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# 优先从 GitHub Release 下载；没有 Release 或失败则用本地编译产物
 download_binary() {
     local dest="${INSTALL_DIR}/${BINARY_NAME}"
     log_info "安装 Norrna Manager..."
 
+    local ok=0
     if [[ -n "$DOWNLOAD_URL" ]]; then
-        if command -v curl &> /dev/null; then
-            curl -fsSL -o "$dest" "$DOWNLOAD_URL"
-        elif command -v wget &> /dev/null; then
-            wget -q -O "$dest" "$DOWNLOAD_URL"
+        log_info "尝试下载: $DOWNLOAD_URL"
+        if command -v curl &> /dev/null && curl -fsSL -o "$dest" "$DOWNLOAD_URL" && [[ -s "$dest" ]]; then
+            ok=1
+        elif command -v wget &> /dev/null && wget -q -O "$dest" "$DOWNLOAD_URL" && [[ -s "$dest" ]]; then
+            ok=1
         else
-            log_error "未找到 curl 或 wget，请先安装"
-            exit 1
+            log_warning "GitHub 下载失败（可能还没有 Release），改为使用本地文件"
+            rm -f "$dest"
         fi
-    else
-        local src=""
-        for cand in \
-            "${SCRIPT_DIR}/${BINARY_NAME}" \
-            "${SCRIPT_DIR}/../target/release/${BINARY_NAME}" \
-            "${PWD}/${BINARY_NAME}" \
-            "${PWD}/target/release/${BINARY_NAME}"; do
-            if [[ -f "$cand" ]]; then
-                src="$cand"
-                break
-            fi
-        done
+    fi
+    if [[ "$ok" -eq 0 ]]; then
+        local src
+        src="$(find_local_bin "$BINARY_NAME" || true)"
         if [[ -z "$src" ]]; then
-            log_error "DOWNLOAD_URL 为空，且找不到本地 ${BINARY_NAME}"
-            log_info "请先 cargo build --release，再在项目目录执行本脚本"
+            log_error "无法获取 ${BINARY_NAME}"
+            log_info "请先 cargo build --release，或在 GitHub 发布 Release 并上传二进制"
             exit 1
         fi
         log_info "使用本地文件: $src"
@@ -221,19 +232,18 @@ download_binary() {
     fi
     chmod +x "$dest"
 
-    local agent_src=""
-    for cand in \
-        "${SCRIPT_DIR}/norrna" \
-        "${SCRIPT_DIR}/../target/release/norrna" \
-        "${PWD}/norrna" \
-        "${PWD}/target/release/norrna"; do
-        if [[ -f "$cand" ]]; then
-            agent_src="$cand"
-            break
+    local agent_src
+    agent_src="$(find_local_bin norrna || true)"
+    if [[ -z "$agent_src" ]] && [[ -n "$DOWNLOAD_URL" ]]; then
+        local agent_url="${DOWNLOAD_URL%/*}/norrna"
+        if command -v curl &> /dev/null && curl -fsSL -o "${INSTALL_DIR}/norrna" "$agent_url" && [[ -s "${INSTALL_DIR}/norrna" ]]; then
+            agent_src="${INSTALL_DIR}/norrna"
         fi
-    done
-    if [[ -n "$agent_src" ]]; then
+    fi
+    if [[ -n "$agent_src" && "$agent_src" != "${INSTALL_DIR}/norrna" ]]; then
         cp -f "$agent_src" "${INSTALL_DIR}/norrna"
+    fi
+    if [[ -f "${INSTALL_DIR}/norrna" ]]; then
         chmod +x "${INSTALL_DIR}/norrna"
         log_info "已同时安装 Agent 二进制: ${INSTALL_DIR}/norrna"
     fi
@@ -320,7 +330,7 @@ show_install_info() {
     echo -e "  查看日志: ${GREEN}journalctl -u $SERVICE_NAME -f${NC}"
     echo
     echo -e "${YELLOW} 更多信息:${NC}"
-    echo -e "  GitHub: ${BLUE}https://github.com${NC}"
+    echo -e "  GitHub: ${BLUE}https://github.com/dododook/Norrna${NC}"
     echo
 }
 

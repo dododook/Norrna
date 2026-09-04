@@ -89,7 +89,10 @@ async fn serve_agent_script(headers: HeaderMap) -> Response {
         .and_then(|v| v.to_str().ok())
         .unwrap_or("http");
     let url = format!("{proto}://{host}/norrna");
-    let body = AGENT_SH.replace(r#"BINARY_URL="""#, &format!(r#"BINARY_URL="{url}""#));
+    let body = AGENT_SH.replace(
+        r#"BINARY_URL="https://github.com/dododook/Norrna/releases/latest/download/norrna""#,
+        &format!(r#"BINARY_URL="{url}""#),
+    );
     (
         StatusCode::OK,
         [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
