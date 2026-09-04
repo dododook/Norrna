@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-PREFIX="${PREFIX:-/opt/zelay}"
+PREFIX="${PREFIX:-/opt/norrna}"
 WEBPORT="${WEBPORT:-3000}"
 AGENTPORT="${AGENTPORT:-3001}"
 
@@ -18,13 +18,16 @@ cargo build --release
 
 echo "[+] 安装到 $PREFIX"
 mkdir -p "$PREFIX/data"
-cp -f target/release/zelay-manager target/release/zelay "$PREFIX/"
-chmod +x "$PREFIX/zelay-manager" "$PREFIX/zelay"
+cp -f target/release/norrna-manager target/release/norrna "$PREFIX/"
+chmod +x "$PREFIX/norrna-manager" "$PREFIX/norrna"
 
 echo
 echo "编译完成。"
 echo "启动面板："
-echo "  $PREFIX/zelay-manager --webport $WEBPORT --agentport $AGENTPORT --data-dir $PREFIX/data"
+echo "  $PREFIX/norrna-manager --webport $WEBPORT --agentport $AGENTPORT --data-dir $PREFIX/data"
 echo
 echo "启动 Agent（先在面板创建 Agent 拿到 key）："
-echo "  $PREFIX/zelay api --server 127.0.0.1:$AGENTPORT --key YOUR_KEY"
+echo "  $PREFIX/norrna api --server 127.0.0.1:$AGENTPORT --key YOUR_KEY"
+echo
+echo "普通转发需要官方 realm，放到 $PREFIX/realm 或 PATH："
+echo "  https://github.com/zhboner/realm/releases/tag/v2.9.6"

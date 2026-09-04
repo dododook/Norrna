@@ -1,3 +1,4 @@
+//! Port-multiplex overlay (modes 1/2). Plain TCP/UDP (mode 0) is handled by official Realm.
 use anyhow::Result;
 use std::collections::HashMap;
 use std::net::SocketAddr;

@@ -19,6 +19,7 @@ NC='\033[0m'
 # 默认配置
 INSTALL_DIR="/etc/norrna"
 BINARY_URL="https://github.com/dododook/Norrna/releases/latest/download/norrna"
+REALM_VERSION="v2.9.6"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_NAME="norrna-agent"
 DEFAULT_DNS="223.5.5.5:53,119.29.29.29:53"
@@ -157,11 +158,11 @@ install_dependencies() {
     
     if command -v apt-get > /dev/null 2>&1; then
         apt-get update -qq
-        apt-get install -y wget curl systemd
+        apt-get install -y wget curl systemd tar gzip
     elif command -v yum > /dev/null 2>&1; then
-        yum install -y wget curl systemd
+        yum install -y wget curl systemd tar gzip
     elif command -v dnf > /dev/null 2>&1; then
-        dnf install -y wget curl systemd
+        dnf install -y wget curl systemd tar gzip
     else
         log_warning "未知的包管理器，请手动安装 wget curl systemd"
     fi
@@ -235,6 +236,96 @@ download_binary() {
     if ! "$INSTALL_DIR/norrna" --version > /dev/null 2>&1 && ! "$INSTALL_DIR/norrna" --help > /dev/null 2>&1; then
         log_warning "无法验证程序版本，但文件已下载"
     fi
+
+    install_realm
+}
+
+install_realm() {
+    log_info "安装官方 Realm 转发内核 (${REALM_VERSION})..."
+    local dest="$INSTALL_DIR/realm"
+    local arch
+    arch="$(uname -m)"
+    local assets=()
+    case "$arch" in
+        x86_64|amd64)
+            assets=(
+                "realm-x86_64-unknown-linux-musl.tar.gz"
+                "realm-x86_64-unknown-linux-gnu.tar.gz"
+            )
+            ;;
+        aarch64|arm64)
+            assets=(
+                "realm-aarch64-unknown-linux-musl.tar.gz"
+                "realm-aarch64-unknown-linux-gnu.tar.gz"
+            )
+            ;;
+        *)
+            log_error "不支持的架构: $arch（需要 x86_64 或 aarch64）"
+            exit 1
+            ;;
+    esac
+
+    local tmpdir
+    tmpdir="$(mktemp -d /tmp/norrna-realm.XXXXXX)"
+    local ok=0
+    local asset
+    for asset in "${assets[@]}"; do
+        local url="https://github.com/zhboner/realm/releases/download/${REALM_VERSION}/${asset}"
+        log_info "尝试下载: $url"
+        if command -v wget >/dev/null 2>&1 && wget -q --show-progress -O "$tmpdir/realm.tar.gz" "$url" && [[ -s "$tmpdir/realm.tar.gz" ]]; then
+            ok=1
+        elif command -v curl >/dev/null 2>&1 && curl -fL --retry 3 -o "$tmpdir/realm.tar.gz" "$url" && [[ -s "$tmpdir/realm.tar.gz" ]]; then
+            ok=1
+        fi
+        if [[ "$ok" -eq 1 ]]; then
+            break
+        fi
+    done
+
+    if [[ "$ok" -eq 0 ]]; then
+        local fallback="https://github.com/dododook/Norrna/releases/latest/download/realm"
+        log_warning "官方 Realm 下载失败，尝试 Norrna Release: $fallback"
+        if command -v wget >/dev/null 2>&1 && wget -q --show-progress -O "$dest" "$fallback" && [[ -s "$dest" ]]; then
+            chmod +x "$dest"
+            ok=1
+        elif command -v curl >/dev/null 2>&1 && curl -fL --retry 3 -o "$dest" "$fallback" && [[ -s "$dest" ]]; then
+            chmod +x "$dest"
+            ok=1
+        fi
+        rm -rf "$tmpdir"
+        if [[ "$ok" -eq 1 ]]; then
+            log_success "Realm 已安装: $dest"
+            "$dest" -v 2>/dev/null || true
+            return 0
+        fi
+        log_error "无法下载 Realm。请手动把官方 realm 放到 $dest"
+        log_info "https://github.com/zhboner/realm/releases/tag/${REALM_VERSION}"
+        exit 1
+    fi
+
+    tar -xzf "$tmpdir/realm.tar.gz" -C "$tmpdir"
+    local found=""
+    if [[ -f "$tmpdir/realm" ]]; then
+        found="$tmpdir/realm"
+    else
+        local f
+        for f in "$tmpdir"/*/realm; do
+            if [[ -f "$f" ]]; then
+                found="$f"
+                break
+            fi
+        done
+    fi
+    if [[ -z "$found" ]]; then
+        log_error "压缩包里没有 realm 可执行文件"
+        rm -rf "$tmpdir"
+        exit 1
+    fi
+    mv -f "$found" "$dest"
+    chmod +x "$dest"
+    rm -rf "$tmpdir"
+    log_success "Realm 已安装: $dest"
+    "$dest" -v 2>/dev/null || "$dest" --version 2>/dev/null || true
 }
 
 # 生成配置文件
@@ -352,6 +443,8 @@ show_info() {
     echo ""
     echo -e "${BLUE}文件位置：${NC}"
     echo -e "  实例数据: ${YELLOW}$INSTALL_DIR/instances/${NC}"
+    echo -e "  Realm 内核: ${YELLOW}$INSTALL_DIR/realm${NC}"
+    echo -e "  Realm 运行配置: ${YELLOW}$INSTALL_DIR/realm-runtime.json${NC}"
     echo ""
     echo -e "${GREEN}========================================${NC}"
     echo ""
@@ -448,6 +541,8 @@ update() {
         log_info "  旧版本: $old_version"
         log_info "  新版本: $new_version"
         echo ""
+
+        install_realm
         
     else
         log_error "下载失败，恢复备份..."

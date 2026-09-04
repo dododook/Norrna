@@ -1,4 +1,5 @@
 mod agent;
+mod realm;
 mod relay;
 
 use clap::{Parser, Subcommand};
@@ -6,7 +7,7 @@ use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug)]
-#[command(name = "norrna", version = "26.1.10", about = "Norrna relay")]
+#[command(name = "norrna", version = "26.1.14", about = "Norrna agent (Realm kernel)")]
 struct Cli {
     #[command(subcommand)]
     cmd: Commands,
@@ -61,7 +62,7 @@ async fn main() -> anyhow::Result<()> {
                 .and_then(|p| p.parent().map(|d| d.to_path_buf()))
                 .unwrap_or(cwd);
             if let Some(server) = server {
-                agent::run_agent(&server, &key, name, data).await?;
+                agent::run_agent(&server, &key, name, data, config).await?;
             } else if port.is_some() {
                 anyhow::bail!("passive API server mode is not used by Norrna-Manager; use --server");
             } else {
