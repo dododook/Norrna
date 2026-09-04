@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初始化 - NORRNA</title>
+    <style>
+        :root {
+            --primary: #171717;
+            --primary-hover: #262626;
+            --text-dark: #1a202c;
+            --text-gray: #718096;
+            --bg-body: #fafafa;
+            --border-color: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-body);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text-dark);
+        }
+
+        .setup-card {
+            background: white;
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border-color);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: var(--text-gray);
+            font-size: 0.9em;
+        }
+
+        .info-tip {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 0.85em;
+            color: var(--text-gray);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.1);
+        }
+
+        .password-meter {
+            height: 3px;
+            background: #edf2f7;
+            margin-top: 8px;
+            border-radius: 2px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .password-meter div {
+            height: 100%;
+            width: 0;
+            transition: width 0.3s, background-color 0.3s;
+        }
+
+        .meter-weak { width: 33% !important; background-color: var(--danger) !important; }
+        .meter-medium { width: 66% !important; background-color: var(--warning) !important; }
+        .meter-strong { width: 100% !important; background-color: var(--success) !important; }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        .message.error { background: #fef2f2; color: var(--danger); border: 1px solid #fee2e2; }
+        .message.success { background: #ecfdf5; color: var(--success); border: 1px solid #d1fae5; }
+
+        .spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+            margin: 10px auto 0;
+            display: none;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="setup-card">
+        <div class="header">
+            <h1>NORRNA</h1>
+            <p>初始化设置 - 创建管理员</p>
+        </div>
+
+        <div class="info-tip">
+            请设置一个安全的管理员账户，密码至少 6 位。
+        </div>
+
+        <div id="errorMessage" class="message error"></div>
+        <div id="successMessage" class="message success"></div>
+
+        <form id="setupForm">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" required minlength="3" placeholder="至少3个字符" autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" required minlength="6" placeholder="至少6个字符" autocomplete="new-password">
+                <div class="password-meter">
+                    <div id="passwordStrength"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">确认密码</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6" placeholder="再次输入密码" autocomplete="new-password">
+            </div>
+
+            <button type="submit" class="btn-submit" id="setupBtn">创建账户</button>
+            <div class="spinner" id="spinner"></div>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('setupForm');
+        const setupBtn = document.getElementById('setupBtn');
+        const spinner = document.getElementById('spinner');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const passwordInput = document.getElementById('password');
+        const passwordStrength = document.getElementById('passwordStrength');
+
+        checkSetupStatus();
+
+        async function checkSetupStatus() {
+            try {
+                const response = await fetch('/api/auth/check-setup');
+                const result = await response.json();
+                if (result.success && !result.needs_setup) {
+                    window.location.href = '/login';
+                }
+            } catch (error) {}
+        }
+
+        // 密码强度检测
+        passwordInput.addEventListener('input', () => {
+            const password = passwordInput.value;
+            let strength = 0;
+            
+            if (password.length >= 6) strength++;
+            if (password.length >= 10) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+            
+            passwordStrength.className = '';
+            if (strength >= 4) {
+                passwordStrength.className = 'meter-strong';
+            } else if (strength >= 2) {
+                passwordStrength.className = 'meter-medium';
+            } else if (strength >= 1) {
+                passwordStrength.className = 'meter-weak';
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            if (username.length < 3) return showError('用户名至少需要 3 个字符');
+            if (password.length < 6) return showError('密码至少需要 6 个字符');
+            if (password !== confirmPassword) return showError('两次输入的密码不一致');
+
+            setupBtn.disabled = true;
+            spinner.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/auth/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    successMessage.textContent = '账户创建成功！正在跳转...';
+                    successMessage.style.display = 'block';
+                    spinner.style.display = 'none';
+                    setTimeout(() => { window.location.href = '/'; }, 1000);
+                } else {
+                    showError(result.message || '创建失败，请重试');
+                }
+            } catch (error) {
+                showError('网络错误: ' + error.message);
+            }
+        });
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorMessage.style.display = 'block';
+            setupBtn.disabled = false;
+            spinner.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

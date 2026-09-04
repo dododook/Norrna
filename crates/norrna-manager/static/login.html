@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - NORRNA</title>
+    <style>
+        :root {
+            --primary: #171717;
+            --primary-hover: #262626;
+            --text-dark: #1a202c;
+            --text-gray: #718096;
+            --bg-body: #fafafa;
+            --border-color: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-body);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text-dark);
+        }
+
+        .login-card {
+            background: white;
+            width: 100%;
+            max-width: 380px;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border-color);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: var(--text-gray);
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        .message.error {
+            background: #fef2f2;
+            color: var(--danger);
+            border: 1px solid #fee2e2;
+        }
+
+        .message.success {
+            background: #ecfdf5;
+            color: var(--success);
+            border: 1px solid #d1fae5;
+        }
+
+        .spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+            margin: 10px auto 0;
+            display: none;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="header">
+            <h1>NORRNA</h1>
+            <p>登录以管理服务</p>
+        </div>
+
+        <div id="errorMessage" class="message error"></div>
+        <div id="successMessage" class="message success"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" required autofocus autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn-login" id="loginBtn">登 录</button>
+            <div class="spinner" id="spinner"></div>
+        </form>
+    </div>
+
+    <script>
+        // 检查初始化状态
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('/api/auth/check-setup');
+                const result = await response.json();
+                
+                if (result.success && result.needs_setup) {
+                    window.location.href = '/setup';
+                }
+            } catch (error) {
+                console.error('Check setup error:', error);
+            }
+        });
+
+        const form = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const spinner = document.getElementById('spinner');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        // 检查是否已登录
+        checkAuth();
+
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const result = await response.json();
+                if (result.authenticated) {
+                    window.location.href = '/';
+                }
+            } catch (error) {}
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            loginBtn.disabled = true;
+            spinner.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    successMessage.textContent = '登录成功，正在跳转...';
+                    successMessage.style.display = 'block';
+                    spinner.style.display = 'none';
+                    setTimeout(() => { window.location.href = '/'; }, 500);
+                } else {
+                    errorMessage.textContent = result.message || '用户名或密码错误';
+                    errorMessage.style.display = 'block';
+                    loginBtn.disabled = false;
+                    spinner.style.display = 'none';
+                }
+            } catch (error) {
+                errorMessage.textContent = '网络错误: ' + error.message;
+                errorMessage.style.display = 'block';
+                loginBtn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

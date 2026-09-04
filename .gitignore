@@ -1,0 +1,8 @@
+/target
+**/*.rs.bk
+.idea
+.vscode
+data/
+instances/
+*.json
+!Cargo.toml

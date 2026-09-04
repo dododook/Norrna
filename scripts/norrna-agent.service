@@ -1,0 +1,16 @@
+[Unit]
+Description=Norrna Agent
+After=network.target nss-lookup.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/norrna
+ExecStart=/opt/norrna/norrna api --server 127.0.0.1:3001 --key CHANGE_ME
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=1048576
+LimitNPROC=1048576
+
+[Install]
+WantedBy=multi-user.target

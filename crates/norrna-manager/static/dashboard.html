@@ -1,0 +1,3618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NORRNA</title>
+    <style>
+        :root {
+            /* --- 核心配色 --- */
+            --primary: #171717;            /* 主色：碳黑 */
+            --primary-hover: #262626;      /* 悬停：深灰 */
+            --primary-light: rgba(23, 23, 23, 0.05); /* 选中背景：极淡灰 */
+            
+            --text-dark: #1a202c;          /* 文字颜色加深 */
+            --text-gray: #718096;
+            --bg-gray: #f8f9fa;            /* 背景冷灰 */
+            --border-color: #e2e8f0;
+            
+            /* 状态色 */
+            --success: #10b981;            /* 翠绿色 */
+            --success-bg: #ecfdf5;
+            --danger: #ef4444;             /* 亮红色 */
+            --danger-bg: #fef2f2;
+            --warning: #f59e0b;
+            --warning-bg: #fffbeb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #fafafa;
+            color: var(--text-dark);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-bottom: 10px;
+        }
+
+        /* --- Header --- */
+        .header {
+            background: linear-gradient(135deg, #171717 0%, #2d2d2d 100%);
+            border-radius: 15px;
+            padding: 15px 30px 15px 30px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #ffffff;
+            font-size: 2em;
+            margin-bottom: 6px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.05em;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .username {
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 1.05em;
+            margin-right: 8px;
+        }
+
+        .header-btn, .btn-logout {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            backdrop-filter: blur(4px);
+        }
+
+        .header-btn:hover, .btn-logout:hover {
+            background: white;
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        /* --- Layout --- */
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========== 移动端优化 ========== */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+                padding-bottom: 60px;
+            }
+
+            .header {
+                padding: 20px 16px;
+                flex-direction: column;
+                gap: 16px;
+                margin-bottom: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.3em;
+                margin: 0;
+            }
+
+            .user-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .username {
+                font-size: 12px;
+            }
+
+            .header-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            /* ===== 关键修复：移动端显示逻辑 ===== */
+            .main-content {
+                position: relative;
+            }
+
+            /* 默认显示侧边栏 */
+            .servers-sidebar {
+                padding: 16px;
+                max-height: none;
+                display: block;
+            }
+
+            /* 默认隐藏详情面板 */
+            .instances-panel {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 1000;
+                background: white;
+                padding: 20px 16px;
+                overflow-y: auto;
+            }
+
+            /* 当选中 Agent 时，隐藏侧边栏，显示详情面板 */
+            .main-content.agent-selected .servers-sidebar {
+                display: none;
+            }
+
+            .main-content.agent-selected .instances-panel {
+                display: block;
+            }
+
+            /* 添加返回按钮样式 */
+            .mobile-back-btn {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 16px;
+                margin-bottom: 16px;
+                background: var(--primary);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+
+            .mobile-back-btn:active {
+                opacity: 0.8;
+            }
+
+            /* 桌面端隐藏返回按钮 */
+            @media (min-width: 769px) {
+                .mobile-back-btn {
+                    display: none;
+                }
+            }
+
+            .sidebar-header h2 {
+                font-size: 1.1em;
+            }
+
+            .btn {
+                padding: 8px 14px;
+                font-size: 12px;
+            }
+
+            /* Agent 卡片优化 */
+            .agent-card {
+                padding: 12px;
+            }
+
+            .agent-name {
+                font-size: 13px;
+            }
+
+            .agent-info {
+                font-size: 11px;
+            }
+
+            /* 详情面板标题 */
+            .instances-panel h2 {
+                font-size: 1.3em;
+                margin-top: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .stat-card {
+                padding: 12px;
+            }
+
+            /* 按钮组优化 */
+            .button-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .button-group .btn {
+                width: 100%;
+            }
+
+            /* 模态框优化 */
+            .modal-content {
+                width: 95%;
+                max-width: 95%;
+                padding: 20px;
+                margin: 20px auto;
+            }
+
+            /* 表单优化 */
+            .form-group label {
+                font-size: 13px;
+            }
+
+            .form-group input,
+            .form-group textarea,
+            .form-group select {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            /* 代码块优化 */
+            .command-box {
+                font-size: 11px;
+                padding: 10px;
+            }
+
+            /* Footer 优化 */
+            .footer {
+                padding: 10px;
+                font-size: 11px;
+            }
+        }
+
+        /* 小屏幕进一步优化 */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1em;
+            }
+
+            .agent-card {
+                padding: 10px;
+            }
+
+            .agent-name {
+                font-size: 12px;
+            }
+
+            .modal-content {
+                padding: 16px;
+            }
+        }
+
+        /* --- Sidebar --- */
+        .servers-sidebar {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+            max-height: calc(100vh - 150px);
+            overflow-y: auto; /* 允许滚动 */
+            border: 1px solid var(--border-color);
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .sidebar-header h2 {
+            color: var(--text-dark);
+            font-size: 1.25em;
+            font-weight: 700;
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            padding: 9px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 5px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        #switchViewBtn {
+            background: #e2e8f0;
+            color: #475569;
+            border: 1px solid #cbd5e0;
+        }
+        #switchViewBtn:hover {
+            background: #cbd5e0;
+            color: #1e293b;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-danger {
+            background: #fff1f2;
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.1);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-warning {
+            background: #fef3c7;
+            color: #b45309;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+        
+        .btn-warning:hover {
+            background: #fde68a;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* --- Server/Agent Cards --- */
+        .server-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .server-card:hover {
+            border-color: #cbd5e0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .server-card.active {
+            background-color: var(--primary-light);
+            border-color: var(--primary);
+        }
+
+        .agent-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .agent-card-left {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .agent-card-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: 10px;
+        }
+
+        .server-name {
+            font-weight: 700;
+            color: var(--text-dark);
+            font-size: 1.05em;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .agent-note {
+            color: var(--text-gray);
+            font-size: 0.8em;
+            margin-top: 3px;
+            font-style: italic;
+        }
+
+        .server-info {
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            margin-top: 4px;
+        }
+
+        .agent-footer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .server-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 5px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-connected, .status-online {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+        
+        .status-connected::before, .status-online::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin: 0;
+            background-color: currentColor;
+            flex-shrink: 0;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-disconnected, .status-offline {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .status-disconnected::before, .status-offline::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin: 0;
+            background-color: currentColor;
+            flex-shrink: 0;
+        }
+
+        .status-error {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .agent-version {
+            font-size: 0.75em;
+            color: #9ca3af;
+            background: #f9fafb;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #f3f4f6;
+        }
+
+        /* --- Agent 详情弹窗样式 (全局悬浮版) --- */
+        .btn-details-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-left: auto;
+        }
+
+        .btn-details {
+            padding: 4px 10px;
+            font-size: 0.75em;
+            background: white;
+            color: #4b5563;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-details:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            color: var(--text-dark);
+        }
+
+        /* 全局 Tooltip 样式：Fixed 定位，确保最上层且不被遮挡 */
+        #global-tooltip {
+            position: fixed;
+            z-index: 9999; /* 最高层级 */
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            min-width: 260px;
+            text-align: left;
+            pointer-events: none; /* 让鼠标事件穿透，避免干扰交互 */
+            display: none;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        #global-tooltip.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Tooltip 左侧小箭头 */
+        #global-tooltip::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 20px;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-left: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            transform: rotate(45deg);
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .detail-value {
+            color: var(--text-gray);
+            font-family: 'SFMono-Regular', Consolas, monospace;
+        }
+
+        .server-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        /* --- Main Panel --- */
+        .instances-panel {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+            min-height: 800px;
+            border: 1px solid var(--border-color);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .panel-header h2 {
+            color: var(--text-dark);
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+
+        /* --- Empty State --- */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-gray);
+        }
+
+        .empty-state-icon {
+            margin-bottom: 16px;
+            opacity: 0.4;
+            color: var(--text-gray);
+        }
+        
+        .empty-state-icon svg {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .empty-state h3 {
+            font-size: 1.2em;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+
+        /* --- Modals --- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: none;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h3 {
+            font-weight: 700;
+            font-size: 1.3em;
+            color: var(--text-dark);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #f3f4f6;
+            color: var(--text-dark);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fafafa;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            background: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        /* --- Toast --- */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            padding: 16px 24px;
+            border: 1px solid rgba(0,0,0,0.05);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            gap: 15px;
+            min-width: 300px;
+        }
+
+        .toast.active {
+            display: flex;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+
+        .toast-icon { 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toast-icon svg {
+            display: block;
+        }
+        .toast-message { flex: 1; color: var(--text-dark); font-weight: 500; }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.warning { border-left: 4px solid var(--warning); }
+
+        /* --- Loading --- */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-gray);
+        }
+
+        .spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- Code & Misc --- */
+        .code {
+            background: #f1f5f9;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.85em;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+
+        .info-box {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box p {
+            color: #4b5563;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+
+        .info-box strong { color: var(--text-dark); }
+
+        .command-box {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.85em;
+            margin-top: 10px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid #334155;
+        }
+
+        /* --- Tables --- */
+        .instance-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+        }
+
+        .instance-table th {
+            background: #f8fafc;
+            padding: 16px;
+            text-align: left;
+            color: var(--text-gray);
+            font-weight: 600;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .instance-table th:first-child { border-top-left-radius: 8px; }
+        .instance-table th:last-child { border-top-right-radius: 8px; }
+
+        .instance-table td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-dark);
+            font-size: 0.95em;
+            vertical-align: middle;
+        }
+
+        .instance-table tr:hover td {
+            background: #f9fafb;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            min-height: 24px;
+        }
+
+        /* 广告横幅响应式 */
+        .ad-banner {
+            width: 100%;
+            max-width: 1400px;
+            margin: 16px auto;
+            display: flex;
+            gap: 16px;
+        }
+
+        .ad-banner .ad-item {
+            flex: 1;
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            aspect-ratio: 4 / 1;  /* 固定宽高比 4:1 */
+            background: #0d1117;  /* 加载时的背景色 */
+        }
+
+        .ad-banner iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* 中等屏幕 - 隐藏第三个广告，显示两个 */
+        @media (max-width: 1200px) {
+            .ad-banner .ad-item:nth-child(3) {
+                display: none;
+            }
+        }
+
+        /* 小屏幕 - 隐藏第二和第三个广告，只显示一个 */
+        @media (max-width: 900px) {
+            .ad-banner .ad-item:nth-child(2),
+            .ad-banner .ad-item:nth-child(3) {
+                display: none;
+            }
+        }
+
+                /* ========== 分页样式 ========== */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 0;
+        }
+
+        .pagination-btn {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-dark);
+            transition: all 0.2s;
+            min-width: 36px;
+            text-align: center;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #f5f5f5;
+        }
+
+        .pagination-info {
+            color: var(--text-gray);
+            font-size: 14px;
+            margin: 0 12px;
+            white-space: nowrap;
+        }
+
+
+        /* 转发内容区域 */
+        .instances-content-wrapper {
+            flex: 1 1 auto;
+            overflow-y: auto;
+        }
+
+        /* 分页固定在底部 */
+        .pagination-wrapper {
+            flex: 0 0 auto;
+            margin-top: 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .pagination-wrapper .pagination {
+            margin-top: 0;
+        }
+        /* ========== 搜索框样式 ========== */
+        .search-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 0 0 300px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px 8px 36px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-gray);
+        }
+
+        .search-clear {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+
+        .search-clear:hover {
+            background: var(--bg-gray);
+            color: var(--text-dark);
+        }
+
+        .search-highlight {
+            background-color: #fef08a;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            /* 移动端面板顶部优化 */
+            .panel-header {
+                margin-bottom: 20px;
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+            
+            .panel-header h2 {
+                font-size: 1.2em;
+                width: 100%;
+                margin-bottom: 8px;
+            }
+            
+            /* 搜索容器在移动端单独一行 */
+            .search-container {
+                flex-direction: row;
+                width: 100%;
+                gap: 8px;
+            }
+            
+            .search-box {
+                flex: 1 1 auto;
+            }
+            
+            .search-container .btn-primary {
+                flex-shrink: 0;
+                width: auto;
+                min-width: 80px;
+            }
+            
+            /* 返回按钮优化 */
+            .back-to-list {
+                padding: 10px 16px;
+                font-size: 14px;
+                margin-bottom: 12px;
+            }
+            
+            .back-to-list svg {
+                width: 18px;
+                height: 18px;
+            }
+            
+            .pagination {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            
+            .pagination-btn {
+                padding: 6px 10px;
+                font-size: 13px;
+                min-width: 32px;
+            }
+            
+            .pagination-info {
+                font-size: 13px;
+                margin: 0 6px;
+            }
+        }
+        
+        /* 🆕 端口复用相关样式 */
+        #enableMultiplex {
+            accent-color: var(--primary-color);
+        }
+        
+        #authorizedAgentsList label {
+            transition: all 0.2s ease;
+        }
+        
+        #authorizedAgentsList label:hover {
+            background: #f0f9ff !important;
+            transform: translateX(2px);
+        }
+        
+        #authorizedAgentsList input[type="checkbox"]:checked + div {
+            color: var(--primary-color);
+        }
+        
+        /* 动态路由徽章样式 */
+        .badge-multiplex {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            margin-left: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>NORRNA</h1>
+            </div>
+            <div class="user-info">
+                <span class="username" id="currentUsername"></span>
+                <button class="header-btn" onclick="showChangePasswordModal()">修改密码</button>
+                <button class="header-btn" onclick="logout()">登出</button>
+            </div>
+        </div>
+
+        <!-- 广告横幅 -->
+        <div class="ad-banner">
+            <!-- 左侧广告 -->
+            <div class="ad-item" id="randomAdSlot" style="position: relative;">
+                <a href="https://gomami.io/" target="_blank" style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10;
+                    cursor: pointer;
+                "></a>
+                <iframe 
+                    src="https://gomami.io/assets/ad/gomami-banner-embed.html" 
+                    style=""
+                    allowfullscreen="false">
+                </iframe>
+            </div>
+            
+            <div class="ad-item" style="position: relative;">
+                <a href="https://gomami.io/" target="_blank" style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10;
+                    cursor: pointer;
+                "></a>
+                <iframe 
+                    src="https://gomami.io/assets/ad/gomami-banner-embed.html" 
+                    style=""
+                    allowfullscreen="false">
+                </iframe>
+            </div>
+            
+            <div class="ad-item" style="position: relative;">
+                <a href="https://peekabo.io/" target="_blank" style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10;
+                    cursor: pointer;
+                "></a>
+                <iframe 
+                    src="https://103.73.220.250/cdn_banner.html" 
+                    style=""
+                    allowfullscreen="false">
+                </iframe>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="servers-sidebar">
+                <div class="sidebar-header">
+                    <h2 id="sidebarTitle">Agent 列表</h2>
+                    <div style="display:flex;gap:8px;">
+                        <!--
+                        <button class="btn btn-sm" id="switchViewBtn" onclick="switchView()">
+                            切换到服务器
+                        </button>
+                        -->
+                        <button class="btn btn-primary btn-sm" id="addBtn" onclick="handleAdd()">+ 添加</button>
+                    </div>
+                </div>
+                <div id="serversList">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="instances-panel">
+                <div id="instancesContent">
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;">
+        <rect x="5" y="11" width="14" height="10" rx="2"/>
+        <circle cx="9" cy="15" r="1" fill="currentColor"/>
+        <circle cx="15" cy="15" r="1" fill="currentColor"/>
+        <path d="M9 7h6v4H9z"/>
+        <path d="M12 7V4M8 11V9M16 11V9"/>
+    </svg></div>
+                        <h3>请选择一个 Agent</h3>
+                        <p>从左侧列表中选择 Agent 以查看和管理转发</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addServerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加服务器</h3>
+                <button class="close-btn" onclick="closeAddServerModal()">×</button>
+            </div>
+            <form id="addServerForm" onsubmit="addServer(event)">
+                <div class="form-group">
+                    <label>服务器名称 *</label>
+                    <input type="text" name="name" required placeholder="例如：生产服务器">
+                </div>
+                <div class="form-group">
+                    <label>服务器地址 *</label>
+                    <input type="text" name="host" required placeholder="例如：192.168.1.100">
+                </div>
+                <div class="form-group">
+                    <label>端口 *</label>
+                    <input type="number" name="port" value="9000" required>
+                </div>
+                <div class="form-group">
+                    <label>API Key *</label>
+                    <input type="password" name="api_key" required placeholder="输入 API Key">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddServerModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="addAgentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>创建 Agent</h3>
+                <button class="close-btn" onclick="closeAddAgentModal()">×</button>
+            </div>
+            <form id="addAgentForm" onsubmit="addAgent(event)">
+                <div class="form-group">
+                    <label>Agent 名称 *</label>
+                    <input type="text" name="name" required placeholder="例如：production-agent" id="agentNameInput">
+                    <small style="color:#718096;font-size:0.85em;">唯一标识，建议使用英文</small>
+                </div>
+                <div class="form-group">
+                    <label>API Key *</label>
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" name="api_key" required placeholder="生成或输入 API Key" id="agentKeyInput" style="flex:1;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="generateApiKey()">生成</button>
+                    </div>
+                    <small style="color:#718096;font-size:0.85em;">请妥善保管，创建后无法查看</small>
+                </div>
+                <div class="info-box">
+                    <p><strong>使用说明：</strong></p>
+                    <p>1. 创建 Agent 后，记下 API Key</p>
+                    <p>2. 在目标机器上运行以下命令：</p>
+                    <div class="command-box" id="agentCommand">
+bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
+  server=YOUR_SERVER:${serverInfo.agentPort} \
+  apikey=YOUR_KEY \
+  dns=223.5.5.5:53,119.29.29.29:53
+                    </div>
+                    <p style="margin-top:10px;"><strong>注意：</strong>请检查server是否正确</p>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddAgentModal()">取消</button>
+                    <button type="submit" class="btn btn-success">创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="agentInfoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Agent 连接说明</h3>
+                <button class="close-btn" onclick="closeAgentInfoModal()">×</button>
+            </div>
+            <div class="info-box">
+                <p><strong>Agent 创建成功！</strong></p>
+            </div>
+            <div class="form-group">
+                <label>Agent 名称</label>
+                <div class="code" style="padding:10px;display:block;" id="createdAgentName"></div>
+            </div>
+            <div class="form-group">
+                <label>API Key</label>
+                <div class="code" style="padding:10px;display:block;word-break:break-all;" id="createdAgentKey"></div>
+            </div>
+            <div class="form-group">
+                <label>运行命令</label>
+                <div class="command-box" id="createdAgentCommand"></div>
+            </div>
+            <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:15px;border-radius:8px;margin-top:20px;">
+                <p style="color:#b45309;font-weight:600;margin-bottom:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:inline-block;vertical-align:middle;">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg> 重要提示</p>
+                <p style="color:#92400e;font-size:0.9em;">• 请仔细检查server的连接地址和Agent端口是否正确</p>
+                <p style="color:#92400e;font-size:0.9em;">• 在目标机器上运行上述命令即可连接</p>
+            </div>
+            <div class="form-actions" style="margin-top:20px;">
+                <button type="button" class="btn btn-primary" onclick="copyAgentCommand()">复制命令</button>
+                <button type="button" class="btn btn-success" onclick="closeAgentInfoModal()">我已保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="addInstanceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>创建转发</h3>
+                <button class="close-btn" onclick="closeAddInstanceModal()">×</button>
+            </div>
+            <form id="addInstanceForm" onsubmit="createInstance(event)">
+                <input type="hidden" id="instanceAgentId" name="agent_id">
+                
+                <div class="form-group">
+                    <label>监听地址 *</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" name="listen_ip" value="::" required placeholder="IP地址" style="flex: 7;">
+                        <input type="number" name="listen_port" required placeholder="端口" min="1" max="65535" style="flex: 3;">
+                    </div>
+                    <small style="color:#718096;font-size:0.85em;">本地监听 IP (默认::代表同时监听IPV4和V6) 和端口</small>
+                </div>
+
+                <!-- 🆕 端口复用选项 -->
+                <div class="form-group" id="enableMultiplexGroup">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="enableMultiplex" name="enable_multiplex" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-weight: 600;">启用端口复用（动态路由）</span>
+                    </label>
+                    <small style="color:#718096;font-size:0.85em;display:block;margin-top:6px;">
+                        启用后，单个端口可转发到多个不同目标，支持 Agent 间协作
+                    </small>
+                </div>
+
+                <div class="form-group" id="remoteAddressGroup">
+                    <label>远程地址 *</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" name="remote_host" placeholder="目标域名或IP" style="flex: 7;">
+                        <input type="number" name="remote_port" placeholder="端口" min="1" max="65535" style="flex: 3;">
+                    </div>
+                    <small style="color:#718096;font-size:0.85em;">目标服务器地址和端口</small>
+                </div>
+
+                <!-- 🆕 通过端口复用连接选项 -->
+                <div class="form-group" id="useMultiplexGroup">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="useMultiplexProxy" name="use_multiplex_proxy" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-weight: 600;">通过端口复用连接</span>
+                    </label>
+                    <small style="color:#718096;font-size:0.85em;display:block;margin-top:6px;">
+                        勾选此项表示远程地址支持端口复用功能，需指定最终目标地址
+                    </small>
+                </div>
+
+                <!-- 🆕 最终目标地址（仅在使用端口复用时显示） -->
+                <div class="form-group" id="finalTargetGroup" style="display: none;">
+                    <label>最终目标地址 *</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" name="final_target_host" placeholder="最终目标域名或IP" style="flex: 7;">
+                        <input type="number" name="final_target_port" placeholder="端口" min="1" max="65535" style="flex: 3;">
+                    </div>
+                    <small style="color:#718096;font-size:0.85em;">
+                        通过端口复用转发到此最终目标
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>备注（可选）</label>
+                    <input type="text" name="instance_note" placeholder="添加备注信息，方便识别...">
+                    <small style="color:#718096;font-size:0.85em;">例如：香港服务器、测试环境等</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddInstanceModal()">取消</button>
+                    <button type="submit" class="btn btn-success">创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editAgentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>编辑 Agent</h3>
+                <button class="close-btn" onclick="closeEditAgentModal()">×</button>
+            </div>
+            <form id="editAgentForm" onsubmit="updateAgent(event)">
+                <input type="hidden" id="editAgentId" name="agent_id">
+                <div class="form-group">
+                    <label>Agent 名称 *</label>
+                    <input type="text" id="editAgentName" name="name" required placeholder="例如：生产服务器">
+                </div>
+                <div class="form-group">
+                    <label>API Key（只读）</label>
+                    <div style="position:relative;">
+                        <input type="text" id="editAgentApiKey" readonly style="background:#f9fafb;cursor:default;padding-right:40px;" value="********">
+                        <button type="button" onclick="copyApiKey()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;" title="复制API Key">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <small style="color:#6b7280;font-size:0.85em;">此API Key用于Agent连接到管理服务器</small>
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <textarea id="editAgentNote" name="note" placeholder="添加备注信息..." rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditAgentModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editInstanceModal" class="modal">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3>编辑转发</h3>
+                <button class="close-btn" onclick="closeEditInstanceModal()">×</button>
+            </div>
+            <form id="editInstanceForm" onsubmit="updateInstance(event)">
+                <input type="hidden" id="editInstanceAgentId" name="agent_id">
+                <input type="hidden" id="editInstanceId" name="instance_id">
+                <input type="hidden" id="editMultiplexMode" name="multiplex_mode">
+                
+                <div class="form-group">
+                    <label>转发 ID</label>
+                    <div style="background: #f3f4f6; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #6b7280;" id="viewInstanceId"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label>监听地址 *</label>
+                    <input type="text" id="editListen" name="listen" required placeholder="例如：0.0.0.0:8080">
+                </div>
+                
+                <!-- 普通/服务端模式的远程地址 -->
+                <div class="form-group" id="editRemoteGroup">
+                    <label id="editRemoteLabel">远程地址 *</label>
+                    <input type="text" id="editRemote" name="remote" placeholder="例如：example.com:80">
+                    <small id="editRemoteHint">目标服务器地址和端口</small>
+                </div>
+                
+                <!-- 客户端模式的最终目标 -->
+                <div class="form-group" id="editFinalTargetGroup" style="display: none;">
+                    <label>最终目标地址 *</label>
+                    <input type="text" id="editFinalTarget" name="final_target" placeholder="例如：target.com:443">
+                    <small>通过端口复用转发到此最终目标</small>
+                </div>
+                
+                <!-- 端口复用模式标识（只读） -->
+                <div class="form-group" id="editMultiplexBadgeGroup" style="display: none;">
+                    <label>端口复用模式</label>
+                    <div id="editMultiplexBadge"></div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditInstanceModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- 编辑备注模态框 -->
+    <div id="editNoteModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>编辑备注</h3>
+                <button class="close-btn" onclick="closeEditNoteModal()">×</button>
+            </div>
+            <form id="editNoteForm" onsubmit="updateInstanceNote(event)">
+                <input type="hidden" id="editNoteAgentId">
+                <input type="hidden" id="editNoteInstanceId">
+                <div class="form-group">
+                    <label>备注信息</label>
+                    <textarea id="editNoteText" rows="4" placeholder="为这个转发添加备注..." style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:4px;resize:vertical;font-family:inherit;"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditNoteModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 修改密码模态框 -->
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>修改密码</h3>
+                <button class="close-btn" onclick="closeChangePasswordModal()">×</button>
+            </div>
+            <form id="changePasswordForm" onsubmit="changePassword(event)">
+                <div class="form-group">
+                    <label>当前密码 *</label>
+                    <input type="password" name="old_password" required>
+                </div>
+                <div class="form-group">
+                    <label>新密码 *</label>
+                    <input type="password" name="new_password" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>确认新密码 *</label>
+                    <input type="password" name="confirm_password" required minlength="6">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">修改密码</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="global-tooltip"></div>
+
+    <div id="toast" class="toast">
+        <span class="toast-icon" id="toastIcon"></span>
+        <span class="toast-message" id="toastMessage">操作成功</span>
+    </div>
+
+    <script>
+        // ============================================
+        // 全局服务器信息
+        // ============================================
+        let serverInfo = {
+            agentPort: 3001  // 默认值，会被API更新
+        };
+
+        // 页面加载时获取服务器信息
+        let serverInfoLoaded = false;
+        async function loadServerInfo() {
+            if (serverInfoLoaded) return;  // 避免重复加载
+            try {
+                const response = await fetch('/api/server-info');
+                const result = await response.json();
+                if (result.success && result.data) {
+                    serverInfo.agentPort = result.data.agent_port;
+                    serverInfoLoaded = true;
+                    console.log('✅ Server info loaded, agent port:', serverInfo.agentPort);
+                }
+            } catch (error) {
+                console.error('❌ Failed to load server info:', error);
+            }
+        }
+        
+        // 确保在生成部署命令前加载服务器信息
+        async function ensureServerInfo() {
+            if (!serverInfoLoaded) {
+                await loadServerInfo();
+            }
+        }
+
+        // 生成部署命令 - bash一键脚本版本
+        function generateDeployCommand(apiKey = 'YOUR_API_KEY') {
+            const serverHost = window.location.hostname;
+            const port = serverInfo.agentPort || 3001;
+            return `bash <(curl -fsSL ${window.location.origin}/norrna_agent.sh) \\
+  server=${serverHost}:${port} \\
+  apikey=${apiKey} \\
+  dns=223.5.5.5:53,119.29.29.29:53`;
+        }
+        
+        // 异步版本 - 确保端口已加载
+        async function generateDeployCommandAsync(apiKey = 'YOUR_API_KEY') {
+            await ensureServerInfo();
+            return generateDeployCommand(apiKey);
+        }
+
+        // 生成部署命令（统一使用bash脚本）
+        function generateRealmCommand(apiKey = 'YOUR_KEY') {
+            return generateDeployCommand(apiKey);
+        }
+
+        let servers = [];
+        let agents = [];
+
+        // ========== 分页和搜索变量 ==========
+        let agentPage = 1;
+        const agentPageSize = 6;
+        let instancePage = 1;
+        const instancePageSize = 10;
+        let instanceSearchQuery = '';
+        let currentServerId = null;
+        let currentAgentId = null;
+        let instances = [];
+        let currentUser = null;
+        let viewMode = 'agents';
+        let autoRefreshInterval = null;
+        let lastInstancesData = null;
+
+        // --- 全局弹窗控制函数 ---
+        function showGlobalTooltip(element) {
+            const tooltip = document.getElementById('global-tooltip');
+            const data = element.dataset;
+            
+            // 构造内容
+            let content = '';
+            if (data.ip) {
+                content += `
+                    <div class="detail-item">
+                        <span class="detail-label">IP:</span>
+                        <span class="detail-value">${escapeHtml(data.ip)}</span>
+                    </div>`;
+            }
+            if (data.cpu) {
+                content += `
+                    <div class="detail-item">
+                        <span class="detail-label">CPU:</span>
+                        <span class="detail-value">${parseFloat(data.cpu).toFixed(1)}%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">内存:</span>
+                        <span class="detail-value">${data.mem}% (${data.memGb}G)</span>
+                    </div>`;
+            }
+            if (data.lastSeen) {
+                content += `
+                    <div class="detail-item" style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;">
+                        <span class="detail-label">最后活跃:</span>
+                    </div>
+                    <div style="font-size:0.75em;color:#a0aec0;margin-top:4px;">
+                        ${new Date(data.lastSeen).toLocaleString('zh-CN')}
+                    </div>`;
+            }
+
+            if (!content) return; // 无内容不显示
+
+            tooltip.innerHTML = content;
+            tooltip.classList.add('active');
+
+            // 计算位置
+            const rect = element.getBoundingClientRect();
+            // 定位到按钮右侧，稍微向上对齐
+            tooltip.style.top = (rect.top - 20) + 'px'; 
+            tooltip.style.left = (rect.right + 12) + 'px';
+        }
+
+        function hideGlobalTooltip() {
+            const tooltip = document.getElementById('global-tooltip');
+            tooltip.classList.remove('active');
+        }
+
+        window.addEventListener('load', async () => {
+            console.log('Page loaded, checking authentication...');
+            await checkAuthentication();
+            await loadAgents();
+            await loadServers();
+            renderAgents();
+            
+            startAutoRefresh();
+        });
+
+        function startAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            
+            autoRefreshInterval = setInterval(async () => {
+                if (viewMode === 'agents') {
+                    await smartRefreshAgents();
+                } else {
+                    await smartRefreshServers();
+                }
+            }, 5000);
+        }
+
+        async function smartRefreshAgents() {
+            const oldAgents = [...agents];
+            await loadAgents();
+            
+            let hasChanges = false;
+            
+            if (oldAgents.length !== agents.length) {
+                hasChanges = true;
+            }
+            
+            if (!hasChanges) {
+                hasChanges = oldAgents.some((oldAgent) => {
+                    const newAgent = agents.find(a => a.id === oldAgent.id);
+                    if (!newAgent) return true;
+                    
+                    return newAgent.status !== oldAgent.status ||
+                           newAgent.cpu_usage !== oldAgent.cpu_usage ||
+                           newAgent.memory_usage !== oldAgent.memory_usage ||
+                           newAgent.memory_total !== oldAgent.memory_total ||
+                           newAgent.note !== oldAgent.note ||
+                           newAgent.ip !== oldAgent.ip;
+                });
+            }
+            
+            if (hasChanges) {
+                console.log('Agent状态变化，更新显示');
+                renderAgents();
+            }
+            
+            if (currentAgentId) {
+                const agent = agents.find(a => a.id === currentAgentId);
+                if (agent && agent.status === 'online') {
+                    await smartRefreshInstances(currentAgentId);
+                } else if (agent && agent.status === 'offline') {
+                    lastInstancesData = null;
+                    const container = document.getElementById('instancesContent');
+                    if (container.innerHTML.includes('正在加载') || container.innerHTML.includes('运行中')) {
+                        selectAgent(currentAgentId);
+                    }
+                }
+            }
+        }
+
+        async function smartRefreshServers() {
+            const oldServers = [...servers];
+            await loadServers();
+            
+            let hasChanges = false;
+            
+            if (oldServers.length !== servers.length) {
+                hasChanges = true;
+            }
+            
+            if (!hasChanges) {
+                hasChanges = oldServers.some((oldServer) => {
+                    const newServer = servers.find(s => s.id === oldServer.id);
+                    if (!newServer) return true;
+                    return newServer.status !== oldServer.status ||
+                           newServer.name !== oldServer.name;
+                });
+            }
+            
+            if (hasChanges) {
+                console.log('服务器状态变化，更新显示');
+                renderServersList();
+            }
+        }
+
+        async function smartRefreshInstances(agentId) {
+            try {
+                const res = await fetch(`/api/agents/${agentId}/instances`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    const newInstances = data.data || [];
+                    
+                    if (!lastInstancesData || hasInstancesChanged(lastInstancesData, newInstances)) {
+                        console.log('转发状态变化，更新显示');
+                        lastInstancesData = JSON.parse(JSON.stringify(newInstances));
+                        const agent = agents.find(a => a.id === agentId);
+                        if (agent) {
+                            renderAgentInstances(agent, newInstances);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Refresh instances error:', e);
+            }
+        }
+
+        function hasInstancesChanged(oldData, newData) {
+            if (oldData.length !== newData.length) {
+                return true;
+            }
+            
+            return oldData.some((oldInst) => {
+                const newInst = newData.find(inst => inst.id === oldInst.id);
+                if (!newInst) return true;
+                
+                return newInst.status !== oldInst.status ||
+                       newInst.config.listen !== oldInst.config.listen ||
+                       newInst.config.remote !== oldInst.config.remote;
+            });
+        }
+
+        async function checkAuthentication() {
+            try {
+                const response = await fetch('/api/auth/me');
+                const result = await response.json();
+                console.log('Auth response:', result);
+
+                if (result.success && result.user) {
+                    currentUser = result.user;
+                    document.getElementById('currentUsername').textContent = result.user.username;
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        async function logout() {
+            if (!confirm('确定要登出吗？')) return;
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                showToast('登出错误: ' + error.message, 'error');
+            }
+        }
+
+        async function loadServers() {
+            try {
+                console.log('Loading servers...');
+                const response = await fetch('/api/servers');
+                const result = await response.json();
+                console.log('Servers response:', result);
+
+                if (result.success) {
+                    servers = result.data || [];
+                    console.log('Loaded servers:', servers);
+                    if (viewMode === 'servers') {
+                        renderServersList();
+                    }
+                } else {
+                    if (viewMode === 'servers') {
+                        document.getElementById('serversList').innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Load servers error:', error);
+                if (viewMode === 'servers') {
+                    document.getElementById('serversList').innerHTML = '<div class="empty-state"><p>网络错误</p></div>';
+                }
+            }
+        }
+
+        async function loadAgents() {
+            await loadServerInfo();
+            try {
+                console.log('Loading agents...');
+                const response = await fetch('/api/agents');
+                const result = await response.json();
+                console.log('Agents response:', result);
+
+                if (result.success) {
+                    agents = result.data || [];
+                    console.log('Loaded agents:', agents);
+                }
+            } catch (error) {
+                console.error('Load agents error:', error);
+            }
+        }
+
+        function renderServersList() {
+            console.log('Rendering servers, count:', servers.length);
+            const container = document.getElementById('serversList');
+
+            if (servers.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding:40px 20px;"><p style="color:#a0aec0;">暂无服务器</p><p style="color:#cbd5e0;font-size:0.9em;margin-top:10px;">点击上方"添加"按钮添加服务器</p></div>';
+                return;
+            }
+
+            container.innerHTML = servers.map(server => `
+                <div class="server-card ${currentServerId === server.id ? 'active' : ''}" 
+                     onclick="selectServer('${server.id}')">
+                    <div class="agent-card-header">
+                        <div class="agent-card-left">
+                             <div class="server-name">${escapeHtml(server.name)}</div>
+                        </div>
+                    </div>
+                    <div class="server-info">
+                        <span class="code" style="background:#f3f4f6;color:#4b5563;border:none;">${escapeHtml(server.host)}:${server.port}</span>
+                    </div>
+                    <div class="agent-footer">
+                        <span class="server-status status-${server.status}">
+                            ${server.status === 'connected' ? '已连接' : '未连接'}
+                        </span>
+                        <div class="server-actions" style="margin-left:auto;margin-top:0;">
+                            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); connectServer('${server.id}')">
+                                连接
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteServer('${server.id}')">
+                                删除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+
+        // ========== 分页辅助函数 ==========
+        function changeAgentPage(newPage) {
+            const totalPages = Math.ceil(agents.length / agentPageSize);
+            if (newPage >= 1 && newPage <= totalPages) {
+                agentPage = newPage;
+                renderAgents();
+            }
+        }
+
+        function changeInstancePage(newPage) {
+            let instances = lastInstancesData || [];
+            
+            if (instanceSearchQuery.trim()) {
+                const query = instanceSearchQuery.trim().toLowerCase();
+                instances = instances.filter(inst => {
+                    const note = (inst.note || '').toLowerCase();
+                    const listen = (inst.listen || '').toLowerCase();
+                    const remote = (inst.remote || '').toLowerCase();
+                    return note.includes(query) || listen.includes(query) || remote.includes(query);
+                });
+            }
+
+            const totalPages = Math.ceil(instances.length / instancePageSize);
+            if (newPage >= 1 && newPage <= totalPages) {
+                instancePage = newPage;
+                const agent = agents.find(a => a.id === currentAgentId);
+                if (agent && lastInstancesData) {
+                    renderAgentInstances(agent, lastInstancesData);
+                }
+            }
+        }
+
+        function handleInstanceSearch(query) {
+            instanceSearchQuery = query;
+            instancePage = 1;
+            
+            const agent = agents.find(a => a.id === currentAgentId);
+            if (agent && lastInstancesData) {
+                renderAgentInstances(agent, lastInstancesData);
+                
+                // 🆕 重新聚焦到搜索框并恢复光标位置
+                setTimeout(() => {
+                    const searchInput = document.querySelector('.search-input');
+                    if (searchInput) {
+                        searchInput.focus();
+                        // 将光标移到末尾
+                        searchInput.setSelectionRange(query.length, query.length);
+                    }
+                }, 0);
+            }
+        }
+
+        function clearInstanceSearch() {
+            instanceSearchQuery = '';
+            instancePage = 1;
+            
+            const agent = agents.find(a => a.id === currentAgentId);
+            if (agent && lastInstancesData) {
+                renderAgentInstances(agent, lastInstancesData);
+            }
+        }
+
+        function highlightSearchText(text) {
+            if (!instanceSearchQuery.trim()) {
+                return text;
+            }
+            
+            const query = instanceSearchQuery.trim();
+            const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+            return text.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function renderAgents() {
+            console.log('Rendering agents, count:', agents.length);
+            const container = document.getElementById('serversList');
+
+            if (agents.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding:40px 20px;"><p style="color:#a0aec0;">暂无 Agent</p><p style="color:#cbd5e0;font-size:0.9em;margin-top:10px;">点击上方"添加"按钮创建 Agent</p></div>';
+                return;
+            }
+
+            // 🆕 分页逻辑
+            const totalPages = Math.ceil(agents.length / agentPageSize);
+            const startIndex = (agentPage - 1) * agentPageSize;
+            const endIndex = Math.min(startIndex + agentPageSize, agents.length);
+            const paginatedAgents = agents.slice(startIndex, endIndex);
+
+            let html = paginatedAgents.map(a => {
+                const memUsagePercent = a.memory_total > 0 
+                    ? ((a.memory_usage / a.memory_total) * 100).toFixed(1) 
+                    : 0;
+                const memUsageGB = (a.memory_usage / 1024 / 1024 / 1024).toFixed(1);
+                const memTotalGB = (a.memory_total / 1024 / 1024 / 1024).toFixed(1);
+                
+                return `
+                    <div class="server-card ${currentAgentId === a.id ? 'active' : ''}" onclick="selectAgent('${a.id}')">
+                        <div class="agent-card-header">
+                            <div class="agent-card-left">
+                                <div class="server-name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;"><rect x="5" y="11" width="14" height="10" rx="2"/><circle cx="9" cy="15" r="1" fill="currentColor"/><circle cx="15" cy="15" r="1" fill="currentColor"/><path d="M9 7h6v4H9z"/><path d="M12 7V4M8 11V9M16 11V9"/></svg>${escapeHtml(a.name)}</div>
+                            </div>
+                            <div class="agent-card-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); showEditAgentModal('${a.id}')">编辑</button>
+                                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteAgent('${a.id}')">删除</button>
+                            </div>
+                        </div>
+                        ${a.note ? `<div class="agent-note">${escapeHtml(a.note)}</div>` : ''}
+                        <div class="agent-footer">
+                            <span class="server-status status-${a.status}"></span>
+                            ${a.status === 'online' && (a.ip || a.memory_total > 0) ? `
+                                <div class="btn-details-wrapper" onclick="event.stopPropagation();"
+                                     onmouseenter="showGlobalTooltip(this)" 
+                                     onmouseleave="hideGlobalTooltip()"
+                                     data-ip="${escapeHtml(a.ip)}"
+                                     data-cpu="${a.cpu_usage}"
+                                     data-mem="${memUsagePercent}"
+                                     data-mem-gb="${memUsageGB}"
+                                     data-last-seen="${a.last_seen}">
+                                    <button class="btn-details">详情 ▸</button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 🆕 添加分页控件
+            if (totalPages > 1) {
+                html += `
+                    <div class="pagination">
+                        <button class="pagination-btn" onclick="changeAgentPage(${agentPage - 1})" ${agentPage === 1 ? 'disabled' : ''}>
+                            ‹ 上一页
+                        </button>
+                        <span class="pagination-info">第 ${agentPage} / ${totalPages} 页</span>
+                        <button class="pagination-btn" onclick="changeAgentPage(${agentPage + 1})" ${agentPage === totalPages ? 'disabled' : ''}>
+                            下一页 ›
+                        </button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+
+        async function selectServer(id) {
+            console.log('Selecting server:', id);
+            currentServerId = id;
+            renderServersList();
+
+            const container = document.getElementById('instancesContent');
+            container.innerHTML = '<div class="empty-state"><p>服务器转发管理功能开发中...</p></div>';
+        }
+
+        async function selectAgent(id) {
+            console.log('Selecting agent:', id);
+            currentAgentId = id;
+            lastInstancesData = null;
+            
+            // 🆕 重置转发列表的分页和搜索状态
+            instancePage = 1;
+            instanceSearchQuery = '';
+            
+            renderAgents();
+            // 移动端：添加 agent-selected class
+            if (window.innerWidth <= 768) {
+                document.querySelector('.main-content').classList.add('agent-selected');
+                
+                // 添加返回按钮（如果不存在）
+                const detailPanel = document.querySelector('.instances-panel');
+                if (detailPanel && !detailPanel.querySelector('.mobile-back-btn')) {
+                    const backBtn = document.createElement('button');
+                    backBtn.className = 'mobile-back-btn';
+                    backBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> 返回列表';
+                    backBtn.onclick = function() {
+                        document.querySelector('.main-content').classList.remove('agent-selected');
+                    };
+                    detailPanel.insertBefore(backBtn, detailPanel.firstChild);
+                }
+            }
+
+
+            const container = document.getElementById('instancesContent');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>正在加载转发...</p></div>';
+
+            const agent = agents.find(a => a.id === id);
+            if (!agent) {
+                container.innerHTML = '<div class="empty-state"><h3>Agent 不存在</h3></div>';
+                return;
+            }
+
+            if (agent.status !== 'online') {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;">
+        <rect x="5" y="11" width="14" height="10" rx="2"/>
+        <circle cx="9" cy="15" r="1" fill="currentColor"/>
+        <circle cx="15" cy="15" r="1" fill="currentColor"/>
+        <path d="M9 7h6v4H9z"/>
+        <path d="M12 7V4M8 11V9M16 11V9"/>
+    </svg></div>
+                        <h3>${escapeHtml(agent.name)}</h3>
+                        <p style="color:#ef4444;margin-top:10px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:inline-block;vertical-align:middle;">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg> Agent 离线</p>
+                        <p style="color:#a0aec0;margin-top:5px;">请启动 Norrna-Agent 连接到管理服务器</p>
+                        <div style="margin-top:20px;text-align:left;max-width:600px;margin-left:auto;margin-right:auto;">
+                            <p style="color:#718096;margin-bottom:10px;"><strong>连接命令：</strong></p>
+                            <div class="command-box" id="offlineDeployCommand">正在加载命令...</div>
+                            <p style="color:#a0aec0;font-size:0.85em;margin-top:10px;">注意：此命令包含您的 API Key，请妥善保管</p>
+                        </div>
+                    </div>
+                `;
+                // 获取完整的Agent信息（包含真实API Key）
+                (async () => {
+                    try {
+                        await ensureServerInfo();  // 🔧 确保端口已加载
+                        const response = await fetch(`/api/agents/${id}/full`);
+                        const result = await response.json();
+                        if (result.success && result.data) {
+                            const fullAgent = result.data;
+                            const el = document.getElementById("offlineDeployCommand");
+                            if (el && fullAgent.api_key) {
+                                el.textContent = generateDeployCommand(fullAgent.api_key);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Failed to load API key:', e);
+                        const el = document.getElementById("offlineDeployCommand");
+                        if (el) {
+                            el.textContent = generateDeployCommand("YOUR_API_KEY");
+                        }
+                    }
+                })();
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/agents/${id}/instances`);
+                const data = await res.json();
+
+                if (data.success) {
+                    const instances = data.data || [];
+                    lastInstancesData = JSON.parse(JSON.stringify(instances));
+                    renderAgentInstances(agent, instances);
+                } else {
+                    container.innerHTML = `<div class="empty-state"><h3>加载失败</h3><p>${escapeHtml(data.message)}</p></div>`;
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="empty-state"><h3>网络错误</h3><p>${escapeHtml(e.message)}</p></div>`;
+            }
+        }
+
+                function renderAgentInstances(agent, instances) {
+            const container = document.getElementById('instancesContent');
+            
+            // 🆕 搜索过滤
+            let filteredInstances = instances;
+            if (instanceSearchQuery.trim()) {
+                const query = instanceSearchQuery.trim().toLowerCase();
+                filteredInstances = instances.filter(inst => {
+                    const note = (inst.note || '').toLowerCase();
+                    const listen = (inst.config.listen || '').toLowerCase();
+                    const remote = (inst.config.remote || '').toLowerCase();
+                    return note.includes(query) || listen.includes(query) || remote.includes(query);
+                });
+            }
+
+            // 🆕 分页逻辑
+            const totalPages = Math.ceil(filteredInstances.length / instancePageSize);
+            const startIndex = (instancePage - 1) * instancePageSize;
+            const endIndex = Math.min(startIndex + instancePageSize, filteredInstances.length);
+            const paginatedInstances = filteredInstances.slice(startIndex, endIndex);
+
+            let html = `
+                <div class="panel-header">
+                    <h2>${escapeHtml(agent.name)} - 转发管理</h2>
+                    <div class="search-container">
+                        <div class="search-box">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <input 
+                                type="text" 
+                                class="search-input" 
+                                placeholder="搜索备注、监听地址、远程地址..." 
+                                value="${escapeHtml(instanceSearchQuery)}"
+                                oninput="handleInstanceSearch(this.value)"
+                            />
+                            ${instanceSearchQuery ? `
+                                <button class="search-clear" onclick="clearInstanceSearch()" title="清除搜索">✕</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="showAddInstanceModal('${agent.id}')">+ 创建转发</button>
+                </div>
+            `;
+
+            if (filteredInstances.length === 0) {
+                if (instanceSearchQuery.trim()) {
+                    html += `
+                        <div class="empty-state">
+                            <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg></div>
+                            <h3>未找到匹配的转发</h3>
+                            <p>搜索关键词："${escapeHtml(instanceSearchQuery)}"</p>
+                            <button class="btn btn-secondary" onclick="clearInstanceSearch()" style="margin-top:16px;">清除搜索</button>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="empty-state">
+                            <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;">
+        <path d="M21 8v13H3V8"/>
+        <path d="M1 3h22v5H1z"/>
+        <path d="M10 12h4"/>
+    </svg></div>
+                            <h3>暂无转发</h3>
+                            <p>点击上方"创建转发"按钮添加第一个转发</p>
+                        </div>
+                    `;
+                }
+            } else {
+                html += `
+                    <div class="instances-content-wrapper">
+                    <table class="instance-table">
+                        <thead>
+                            <tr>
+                                <th style="width:1%;">标识</th>
+                                <th style="width:15%;">监听地址</th>
+                                <th style="width:22%;">远程地址</th>
+                                <th style="width:18%;">备注</th>
+                                <th style="width:5%;">状态</th>
+                                <th style="width:39%;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                const currentAgentId = agent.id;  // 保存当前 Agent ID
+                paginatedInstances.forEach(inst => {
+                    const statusClass = inst.status === 'Running' ? 'status-connected' : 'status-disconnected';
+                    const noteText = inst.note ? highlightSearchText(escapeHtml(inst.note)) : '<span style="color:#ccc;">未设置</span>';
+                    const listenText = highlightSearchText(escapeHtml(inst.config.listen || 'N/A'));
+                    
+                    // 🔧 优化远程地址显示
+                    const multiplexMode = inst.config.multiplex_mode || 0;
+                    let remoteText = '';
+                    
+                    if (multiplexMode === 1) {
+                        // 服务端模式
+                        const remote = inst.config.remote || '';
+                        if (remote === '127.0.0.1:1' || !remote) {
+                            remoteText = '<span style="color:#6b7280;font-style:italic;">无默认远程地址</span>';
+                        } else {
+                            remoteText = highlightSearchText(escapeHtml(remote));
+                        }
+                    } else if (multiplexMode === 2) {
+                        // 客户端模式：显示代理地址 + 最终目标
+                        const proxyAddr = highlightSearchText(escapeHtml(inst.config.remote || 'N/A'));
+                        const finalTarget = inst.config.final_target || 'N/A';
+                        remoteText = `
+                            <div style="display:flex;flex-direction:column;gap:4px;">
+                                <div><span class="code">${proxyAddr}</span> <span style="font-size:10px;color:#6b7280;">(复用)</span></div>
+                                <div><span class="code">${highlightSearchText(escapeHtml(finalTarget))}</span> <span style="font-size:10px;color:#6b7280;">(目标)</span></div>
+                            </div>
+                        `;
+                    } else {
+                        // 普通模式
+                        remoteText = highlightSearchText(escapeHtml(inst.config.remote || 'N/A'));
+                    }
+                    
+                    // 🆕 端口复用标识
+                    let multiplexBadge = '';
+                    if (multiplexMode === 1) {
+                        multiplexBadge = '<span style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:white;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;margin-left:8px;box-shadow:0 2px 4px rgba(16,185,129,0.3);letter-spacing:0.3px;" title="端口复用服务端模式">服务端</span>';
+                    } else if (multiplexMode === 2) {
+                        multiplexBadge = '<span style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;margin-left:8px;box-shadow:0 2px 4px rgba(59,130,246,0.3);letter-spacing:0.3px;" title="端口复用客户端模式">客户端</span>';
+                    }
+                    
+                    html += `
+                        <tr>
+                            <td><span class="code" style="font-size: 0.5em">${escapeHtml(inst.id.substring(0, 4))}...</span></td>
+                            <td>
+                                <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+                                    <span class="code">${listenText}</span>${multiplexBadge ? multiplexBadge : ''}
+                                </div>
+                            </td>
+                            <td>${remoteText}</td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:5px;font-size:12px;">
+                                    <span id="note-${inst.id}" style="flex:1;">${noteText}</span>
+                                    <button class="btn btn-secondary btn-sm" style="padding:4px 8px;font-size:12px;line-height:1;" onclick="showEditNoteModal('${agent.id}', '${inst.id}', '${(inst.note || '').replace(/'/g, '&apos;')}')" title="编辑备注">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:block;">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                            <td><span class="status-badge ${statusClass}"></span></td>
+                            <td>
+                                <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                                    ${inst.status === 'Running' ? 
+                                        `<button class="btn btn-warning btn-sm" onclick="stopAgentInstance('${agent.id}', '${inst.id}')">停止</button>
+                                         <button class="btn btn-secondary btn-sm" onclick="restartAgentInstance('${agent.id}', '${inst.id}')">重启</button>` :
+                                        `<button class="btn btn-success btn-sm" onclick="startAgentInstance('${agent.id}', '${inst.id}')">启动</button>`
+                                    }
+                                    <button class=\"btn btn-secondary btn-sm\" onclick='showEditInstanceModal(Object.assign({agent_id: \"${agent.id}\"}, ${JSON.stringify(inst)}))' >编辑</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteAgentInstance('${agent.id}', '${inst.id}')">删除</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                        </tbody>
+                    </table>
+                    </div>
+                `;
+
+                // 🆕 添加分页控件
+                if (totalPages > 1) {
+                    html += `
+                        <div class="pagination-wrapper">
+                        <div class="pagination">
+                            <button class="pagination-btn" onclick="changeInstancePage(${instancePage - 1})" ${instancePage === 1 ? 'disabled' : ''}>
+                                ‹ 上一页
+                            </button>
+                            <span class="pagination-info">
+                                第 ${instancePage} / ${totalPages} 页，共 ${filteredInstances.length} 条${instanceSearchQuery ? '搜索结果' : '记录'}
+                            </span>
+                            <button class="pagination-btn" onclick="changeInstancePage(${instancePage + 1})" ${instancePage === totalPages ? 'disabled' : ''}>
+                                下一页 ›
+                            </button>
+                        </div>
+                        </div>
+                    `;
+                }
+            }
+
+            container.innerHTML = html;
+        }
+
+
+async function connectServer(id) {
+            try {
+                const response = await fetch(`/api/servers/${id}/connect`, { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('连接成功', 'success');
+                    await loadServers();
+                } else {
+                    showToast('连接失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteServer(id) {
+            if (!confirm('确定删除此服务器？')) return;
+            try {
+                const response = await fetch(`/api/servers/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('删除成功', 'success');
+                    if (currentServerId === id) {
+                        currentServerId = null;
+                        document.getElementById('instancesContent').innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;">
+        <path d="M21 8v13H3V8"/>
+        <path d="M1 3h22v5H1z"/>
+        <path d="M10 12h4"/>
+    </svg></div>
+                                <h3>请选择一个服务器</h3>
+                            </div>
+                        `;
+                    }
+                    await loadServers();
+                } else {
+                    showToast('删除失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteAgent(id) {
+            if (!confirm('确定删除此 Agent？Agent 将无法再连接到管理服务器。')) return;
+            try {
+                const response = await fetch(`/api/agents/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('删除成功', 'success');
+                    if (currentAgentId === id) {
+                        currentAgentId = null;
+                        document.getElementById('instancesContent').innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;">
+        <rect x="5" y="11" width="14" height="10" rx="2"/>
+        <circle cx="9" cy="15" r="1" fill="currentColor"/>
+        <circle cx="15" cy="15" r="1" fill="currentColor"/>
+        <path d="M9 7h6v4H9z"/>
+        <path d="M12 7V4M8 11V9M16 11V9"/>
+    </svg></div>
+                                <h3>请选择一个 Agent</h3>
+                            </div>
+                        `;
+                    }
+                    await loadAgents();
+                    renderAgents();
+                } else {
+                    showToast('删除失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        function switchView() {
+            if (viewMode === 'servers') {
+                viewMode = 'agents';
+                currentAgentId = null;
+                lastInstancesData = null;
+                document.getElementById('sidebarTitle').textContent = 'Agent 列表';
+                document.getElementById('switchViewBtn').textContent = '切换到服务器';
+                renderAgents();
+                document.getElementById('instancesContent').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;">
+        <rect x="5" y="11" width="14" height="10" rx="2"/>
+        <circle cx="9" cy="15" r="1" fill="currentColor"/>
+        <circle cx="15" cy="15" r="1" fill="currentColor"/>
+        <path d="M9 7h6v4H9z"/>
+        <path d="M12 7V4M8 11V9M16 11V9"/>
+    </svg></div>
+                        <h3>请选择一个 Agent</h3>
+                        <p>从左侧列表中选择 Agent 以查看和管理转发</p>
+                    </div>
+                `;
+            } else {
+                viewMode = 'servers';
+                currentServerId = null;
+                lastInstancesData = null;
+                document.getElementById('sidebarTitle').textContent = '服务器列表';
+                document.getElementById('switchViewBtn').textContent = '切换到Agent';
+                renderServersList();
+                document.getElementById('instancesContent').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;">
+        <path d="M21 8v13H3V8"/>
+        <path d="M1 3h22v5H1z"/>
+        <path d="M10 12h4"/>
+    </svg></div>
+                        <h3>请选择一个服务器</h3>
+                        <p>从左侧列表中选择服务器以查看和管理转发</p>
+                    </div>
+                `;
+            }
+            startAutoRefresh();
+        }
+
+        function handleAdd() {
+            if (viewMode === 'servers') {
+                showAddServerModal();
+            } else {
+                showAddAgentModal();
+            }
+        }
+
+        function showAddServerModal() {
+            document.getElementById('addServerModal').classList.add('active');
+        }
+
+        function closeAddServerModal() {
+            document.getElementById('addServerModal').classList.remove('active');
+            document.getElementById('addServerForm').reset();
+        }
+
+        async function addServer(e) {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+                name: form.name.value,
+                host: form.host.value,
+                port: parseInt(form.port.value),
+                api_key: form.api_key.value
+            };
+            try {
+                const response = await fetch('/api/servers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('添加成功', 'success');
+                    closeAddServerModal();
+                    await loadServers();
+                } else {
+                    showToast('添加失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        function showAddAgentModal() {
+            document.getElementById('addAgentModal').classList.add('active');
+            generateApiKey();
+        }
+
+        function closeAddAgentModal() {
+            document.getElementById('addAgentModal').classList.remove('active');
+            document.getElementById('addAgentForm').reset();
+        }
+
+        function generateApiKey() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let key = '';
+            for (let i = 0; i < 32; i++) {
+                key += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('agentKeyInput').value = key;
+            updateAgentCommand();
+        }
+
+        function updateAgentCommand() {
+            const name = document.getElementById('agentNameInput').value || 'YOUR_NAME';
+            const key = document.getElementById('agentKeyInput').value || 'YOUR_KEY';
+            document.getElementById('agentCommand').textContent = generateRealmCommand(document.getElementById('agentKeyInput').value || 'YOUR_KEY');
+            document.getElementById('agentCommand').textContent = generateRealmCommand(document.getElementById('agentKeyInput').value || 'YOUR_KEY');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const nameInput = document.getElementById('agentNameInput');
+            const keyInput = document.getElementById('agentKeyInput');
+            if (nameInput) {
+                nameInput.addEventListener('input', updateAgentCommand);
+            }
+            if (keyInput) {
+                keyInput.addEventListener('input', updateAgentCommand);
+            }
+        });
+
+        async function addAgent(e) {
+            e.preventDefault();
+            const form = e.target;
+            const name = form.name.value;
+            const api_key = form.api_key.value;
+
+            try {
+                const response = await fetch('/api/agents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, api_key })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Agent 创建成功！', 'success');
+                    closeAddAgentModal();
+
+                    const command = generateDeployCommand(api_key);
+                    
+                    document.getElementById('createdAgentName').textContent = name;
+                    document.getElementById('createdAgentKey').textContent = api_key;
+                    document.getElementById('createdAgentCommand').textContent = command;
+                    
+                    document.getElementById('agentInfoModal').classList.add('active');
+                    
+                    await loadAgents();
+                    renderAgents();
+                } else {
+                    showToast('创建失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        function closeAgentInfoModal() {
+            document.getElementById('agentInfoModal').classList.remove('active');
+        }
+
+        function copyAgentCommand() {
+            const command = document.getElementById('createdAgentCommand').textContent;
+            navigator.clipboard.writeText(command).then(() => {
+                showToast('命令已复制到剪贴板', 'success');
+            }).catch(err => {
+                showToast('复制失败: ' + err.message, 'error');
+            });
+        }
+
+        async function showEditAgentModal(agentId) {
+            // 从API获取完整的agent信息（包括真实API Key）
+            try {
+                const response = await fetch(`/api/agents/${agentId}/full`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const agent = result.data;
+                    document.getElementById('editAgentId').value = agentId;
+                    document.getElementById('editAgentName').value = agent.name || '';
+                    document.getElementById('editAgentApiKey').value = agent.api_key || '********';
+                    document.getElementById('editAgentNote').value = agent.note || '';
+                    document.getElementById('editAgentModal').classList.add('active');
+                } else {
+                    // 降级方案：使用本地数据
+                    const agent = agents.find(a => a.id === agentId);
+                    if (!agent) return;
+                    
+                    document.getElementById('editAgentId').value = agentId;
+                    document.getElementById('editAgentName').value = agent.name || '';
+                    document.getElementById('editAgentApiKey').value = '********';
+                    document.getElementById('editAgentNote').value = agent.note || '';
+                    document.getElementById('editAgentModal').classList.add('active');
+                }
+            } catch (e) {
+                console.error('Failed to load agent details:', e);
+                // 降级方案：使用本地数据
+                const agent = agents.find(a => a.id === agentId);
+                if (!agent) return;
+                
+                document.getElementById('editAgentId').value = agentId;
+                document.getElementById('editAgentName').value = agent.name || '';
+                document.getElementById('editAgentApiKey').value = '********';
+                document.getElementById('editAgentNote').value = agent.note || '';
+                document.getElementById('editAgentModal').classList.add('active');
+            }
+        }
+
+        function closeEditAgentModal() {
+            document.getElementById('editAgentModal').classList.remove('active');
+            document.getElementById('editAgentForm').reset();
+        }
+
+        async function updateAgent(e) {
+            e.preventDefault();
+            const form = e.target;
+            const agentId = form.agent_id.value;
+            const name = form.name.value;
+            const note = form.note.value;
+
+            try {
+                const response = await fetch(`/api/agents/${agentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, note })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('更新成功', 'success');
+                    closeEditAgentModal();
+                    await loadAgents();
+                    renderAgents();
+                } else {
+                    showToast('更新失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        function showAddInstanceModal(agentId) {
+            // 设置 Agent ID
+            document.getElementById('instanceAgentId').value = agentId;
+            
+            // 🔧 完整重置表单
+            const form = document.getElementById('addInstanceForm');
+            form.reset();
+            
+            // 🔧 重置端口复用服务端状态
+            const enableMultiplexCheckbox = document.getElementById('enableMultiplex');
+            if (enableMultiplexCheckbox) {
+                enableMultiplexCheckbox.checked = false;
+            }
+            
+            // 🔧 重置端口复用客户端状态
+            const useMultiplexCheckbox = document.getElementById('useMultiplexProxy');
+            if (useMultiplexCheckbox) {
+                useMultiplexCheckbox.checked = false;
+            }
+            
+            // 🔧 隐藏所有端口复用相关的区域
+            const multiplexServerInfo = document.getElementById('multiplexServerInfo');
+            if (multiplexServerInfo) {
+                multiplexServerInfo.style.display = 'none';
+            }
+            
+            const finalTargetGroup = document.getElementById('finalTargetGroup');
+            if (finalTargetGroup) {
+                finalTargetGroup.style.display = 'none';
+            }
+            
+            const useMultiplexGroup = document.getElementById('useMultiplexGroup');
+            if (useMultiplexGroup) {
+                useMultiplexGroup.style.display = 'block';
+            }
+            
+            const enableMultiplexGroup = document.getElementById('enableMultiplexGroup');
+            if (enableMultiplexGroup) {
+                enableMultiplexGroup.style.display = 'block';
+            }
+            
+            // 🔧 恢复远程地址标签
+            const remoteGroup = document.getElementById('remoteAddressGroup');
+            if (remoteGroup) {
+                const label = remoteGroup.querySelector('label');
+                const small = remoteGroup.querySelector('small');
+                if (label) label.innerHTML = '远程地址 *';
+                if (small) small.textContent = '目标服务器地址和端口';
+            }
+            
+            // 显示模态框
+            document.getElementById('addInstanceModal').classList.add('active');
+        }
+        
+        // 🆕 加载可授权的 Agent 列表
+        function loadAuthorizedAgentsList() {
+            const container = document.getElementById('authorizedAgentsList');
+            if (!container) return;
+            
+            // 🆕 获取当前 Agent ID（排除自己）
+            const currentAgentId = document.getElementById('instanceAgentId').value;
+            
+            if (!agents || agents.length === 0) {
+                container.innerHTML = '<div style="padding:12px;text-align:center;color:#999;">暂无可用 Agent</div>';
+                return;
+            }
+            
+            // 🆕 过滤掉当前 Agent
+            const otherAgents = agents.filter(agent => agent.id !== currentAgentId);
+            
+            if (otherAgents.length === 0) {
+                container.innerHTML = '<div style="padding:12px;text-align:center;color:#999;">暂无其他 Agent 可授权</div>';
+                return;
+            }
+            
+            // 生成 Agent 复选框列表
+            let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+            otherAgents.forEach(agent => {
+                const isOnline = agent.status === 'online';
+                const statusColor = isOnline ? '#10b981' : '#6b7280';
+                html += `
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px;background:white;border-radius:4px;cursor:pointer;border:1px solid #e5e7eb;transition:all 0.2s;" 
+                           onmouseover="this.style.borderColor='#3b82f6'" 
+                           onmouseout="this.style.borderColor='#e5e7eb'">
+                        <input type="checkbox" name="authorized_agents" value="${agent.id}" 
+                               style="width:16px;height:16px;cursor:pointer;">
+                        <div style="flex:1;">
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <span style="width:8px;height:8px;border-radius:50%;background:${statusColor};"></span>
+                                <span style="font-weight:500;">${agent.name || agent.id}</span>
+                            </div>
+                        </div>
+                        ${!isOnline ? '<span style="font-size:11px;color:#ef4444;">离线</span>' : ''}
+                    </label>
+                `;
+            });
+            html += '</div>';
+            
+            container.innerHTML = html;
+        }
+        
+        // 🆕 切换端口复用模式
+        function toggleMultiplexMode(enabled) {
+            const multiplexServerInfo = document.getElementById('multiplexServerInfo');
+            const remoteGroup = document.getElementById('remoteAddressGroup');
+            const useMultiplexGroup = document.getElementById('useMultiplexGroup');
+            const useMultiplexCheckbox = document.getElementById('useMultiplexProxy');
+            const remoteHost = document.getElementsByName('remote_host')[0];
+            const remotePort = document.getElementsByName('remote_port')[0];
+            
+            if (enabled) {
+                // 🆕 互斥：取消"通过端口复用连接"
+                if (useMultiplexCheckbox && useMultiplexCheckbox.checked) {
+                    useMultiplexCheckbox.checked = false;
+                    toggleUseMultiplexProxy(false);
+                }
+                
+                // 🆕 隐藏"通过端口复用连接"选项（服务端不需要）
+                if (useMultiplexGroup) {
+                    useMultiplexGroup.style.display = 'none';
+                }
+                
+                // 🔧 显示端口复用说明
+                if (multiplexServerInfo) {
+                    multiplexServerInfo.style.display = 'block';
+                }
+                
+                // 🔧 远程地址改为可选
+                remoteGroup.querySelector('label').innerHTML = '远程地址（可选）';
+                remoteGroup.querySelector('small').textContent = '无匹配协议时的默认转发目标（可留空拒绝非协议连接）';
+                remoteHost.required = false;
+                remotePort.required = false;
+                remoteHost.placeholder = '默认目标域名或IP（可选）';
+                remotePort.placeholder = '端口';
+            } else {
+                // 🆕 恢复显示"通过端口复用连接"选项
+                if (useMultiplexGroup) {
+                    useMultiplexGroup.style.display = 'block';
+                }
+                
+                // 🔧 隐藏端口复用说明
+                if (multiplexServerInfo) {
+                    multiplexServerInfo.style.display = 'none';
+                }
+                
+                // 恢复远程地址为必填
+                remoteGroup.querySelector('label').innerHTML = '远程地址 *';
+                remoteGroup.querySelector('small').textContent = '目标服务器地址和端口';
+                remoteHost.required = true;
+                remotePort.required = true;
+                remoteHost.placeholder = '目标域名或IP';
+                remotePort.placeholder = '端口';
+            }
+        }
+
+        function closeAddInstanceModal() {
+            document.getElementById('addInstanceModal').classList.remove('active');
+            
+            // 🔧 完整重置表单
+            const form = document.getElementById('addInstanceForm');
+            form.reset();
+            
+            // 🔧 重置所有复选框状态
+            const enableMultiplexCheckbox = document.getElementById('enableMultiplex');
+            if (enableMultiplexCheckbox) {
+                enableMultiplexCheckbox.checked = false;
+            }
+            
+            const useMultiplexCheckbox = document.getElementById('useMultiplexProxy');
+            if (useMultiplexCheckbox) {
+                useMultiplexCheckbox.checked = false;
+            }
+            
+            // 🔧 隐藏所有端口复用相关区域
+            const multiplexServerInfo = document.getElementById('multiplexServerInfo');
+            if (multiplexServerInfo) {
+                multiplexServerInfo.style.display = 'none';
+            }
+            
+            const finalTargetGroup = document.getElementById('finalTargetGroup');
+            if (finalTargetGroup) {
+                finalTargetGroup.style.display = 'none';
+            }
+            
+            // 🔧 恢复远程地址标签
+            const remoteGroup = document.getElementById('remoteAddressGroup');
+            if (remoteGroup) {
+                const label = remoteGroup.querySelector('label');
+                const small = remoteGroup.querySelector('small');
+                if (label) label.innerHTML = '远程地址 *';
+                if (small) small.textContent = '目标服务器地址和端口';
+            }
+        }
+        
+        // 🆕 为端口复用复选框添加事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            const multiplexCheckbox = document.getElementById('enableMultiplex');
+            if (multiplexCheckbox) {
+                multiplexCheckbox.addEventListener('change', function() {
+                    toggleMultiplexMode(this.checked);
+                });
+            }
+            
+            // 🆕 为"通过端口复用连接"添加事件监听
+            const useMultiplexCheckbox = document.getElementById('useMultiplexProxy');
+            if (useMultiplexCheckbox) {
+                useMultiplexCheckbox.addEventListener('change', function() {
+                    toggleUseMultiplexProxy(this.checked);
+                });
+            }
+        });
+        
+        // 🆕 切换"通过端口复用连接"模式
+        function toggleUseMultiplexProxy(enabled) {
+            const finalTargetGroup = document.getElementById('finalTargetGroup');
+            const remoteGroup = document.getElementById('remoteAddressGroup');
+            const enableMultiplexCheckbox = document.getElementById('enableMultiplex');
+            const enableMultiplexGroup = document.getElementById('enableMultiplexGroup');  // 🆕 获取"启用端口复用"的容器
+            const finalTargetHost = document.getElementsByName('final_target_host')[0];
+            const finalTargetPort = document.getElementsByName('final_target_port')[0];
+            
+            if (enabled) {
+                // 🆕 互斥：取消"启用端口复用"
+                if (enableMultiplexCheckbox && enableMultiplexCheckbox.checked) {
+                    enableMultiplexCheckbox.checked = false;
+                    toggleMultiplexMode(false);
+                }
+                
+                // 🆕 隐藏"启用端口复用"选项（客户端不需要）
+                if (enableMultiplexGroup) {
+                    enableMultiplexGroup.style.display = 'none';
+                }
+                
+                // 显示最终目标地址
+                finalTargetGroup.style.display = 'block';
+                finalTargetHost.required = true;
+                finalTargetPort.required = true;
+                
+                // 修改远程地址说明
+                remoteGroup.querySelector('label').innerHTML = '远程地址 *';
+                remoteGroup.querySelector('small').textContent = '支持端口复用的服务器地址';
+            } else {
+                // 🆕 恢复显示"启用端口复用"选项
+                if (enableMultiplexGroup) {
+                    enableMultiplexGroup.style.display = 'block';
+                }
+                
+                // 隐藏最终目标地址
+                finalTargetGroup.style.display = 'none';
+                finalTargetHost.required = false;
+                finalTargetPort.required = false;
+                
+                // 恢复远程地址说明
+                remoteGroup.querySelector('label').innerHTML = '远程地址 *';
+                remoteGroup.querySelector('small').textContent = '目标服务器地址和端口';
+            }
+        }
+
+async function createInstance(e) {
+            e.preventDefault();
+            const form = e.target;
+            const agentId = form.agent_id.value;
+            
+            // 获取拆分后的输入框值
+            const listenIp = form.listen_ip.value.trim();
+            const listenPort = form.listen_port.value.trim();
+            const remoteHost = form.remote_host.value.trim();
+            const remotePort = form.remote_port.value.trim();
+
+            // 🆕 检查是否启用端口复用（服务端模式）
+            const enableMultiplex = document.getElementById('enableMultiplex').checked;
+            
+            // 🆕 检查是否通过端口复用连接（客户端模式）
+            const useMultiplexProxy = document.getElementById('useMultiplexProxy').checked;
+            
+            // 🆕 获取最终目标地址（客户端模式）
+            let finalTarget = null;
+            if (useMultiplexProxy) {
+                const finalHost = form.final_target_host.value.trim();
+                const finalPort = form.final_target_port.value.trim();
+                
+                if (!finalHost || !finalPort) {
+                    showToast('请填写最终目标地址', 'error');
+                    return;
+                }
+                
+                finalTarget = `${finalHost}:${finalPort}`;
+            }
+            
+            // 🆕 服务端模式不再需要手动选择授权（自动使用 user_id）
+
+            // 🔧 修复：服务端模式时，默认远程地址可选
+            let remote;
+            if (enableMultiplex) {
+                // 服务端模式：如果没填远程地址，使用占位符
+                remote = (remoteHost && remotePort) ? `${remoteHost}:${remotePort}` : '127.0.0.1:1';
+            } else {
+                // 普通模式和客户端模式：必须填写远程地址
+                if (!remoteHost || !remotePort) {
+                    showToast('请填写远程地址', 'error');
+                    return;
+                }
+                remote = `${remoteHost}:${remotePort}`;
+            }
+            
+            // 🔧 修复：构造符合 Realm API 格式的 config
+            const config = {
+                listen: `${listenIp}:${listenPort}`,
+                remote: remote,
+                multiplex_mode: enableMultiplex ? 1 : (useMultiplexProxy ? 2 : 0)
+            };
+            
+            if (useMultiplexProxy && finalTarget) {
+                config.final_target = finalTarget;
+            }
+
+            // 获取备注（可选）
+            const note = form.instance_note.value.trim();
+
+            // 🔧 修复：请求体结构
+            const requestBody = {
+                config,
+                note: note || undefined
+            };
+
+            try {
+                const response = await fetch(`/api/agents/${agentId}/instances`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    let successMsg = '转发创建成功！';
+                    if (enableMultiplex) {
+                        successMsg = '端口复用服务端创建成功！';
+                    } else if (useMultiplexProxy) {
+                        successMsg = '端口复用客户端创建成功！';
+                    }
+                    showToast(successMsg, 'success');
+                    closeAddInstanceModal();
+                    setTimeout(async () => {
+                        lastInstancesData = null;
+                        await smartRefreshInstances(agentId);
+                    }, 500);
+                } else {
+                    showToast('创建失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        function showEditInstanceModal(inst) {
+            try {
+                // 🔧 保存当前编辑的实例（用于更新时保留 owner_user_id）
+                currentEditingInstance = inst;
+                
+                // 保存 Agent ID 和 Instance ID
+                const agentId = inst.agent_id || (typeof currentAgentId !== 'undefined' ? currentAgentId : '');
+                console.log('[编辑转发] Agent ID:', agentId, ', Instance:', inst);
+                document.getElementById('editInstanceAgentId').value = agentId;
+                document.getElementById('editInstanceId').value = inst.id;
+                
+                // 显示 ID（只读）
+                document.getElementById('viewInstanceId').textContent = inst.id;
+                
+                // 填充监听地址
+                document.getElementById('editListen').value = inst.config.listen || '';
+                
+                // 端口复用模式
+                const multiplexMode = inst.config.multiplex_mode || 0;
+                document.getElementById('editMultiplexMode').value = multiplexMode;
+                
+                const editRemoteGroup = document.getElementById('editRemoteGroup');
+                const editFinalTargetGroup = document.getElementById('editFinalTargetGroup');
+                const editMultiplexBadgeGroup = document.getElementById('editMultiplexBadgeGroup');
+                const editRemoteLabel = document.getElementById('editRemoteLabel');
+                const editRemoteHint = document.getElementById('editRemoteHint');
+                const editRemote = document.getElementById('editRemote');
+                const editFinalTarget = document.getElementById('editFinalTarget');
+                
+                if (multiplexMode === 0) {
+                    // 普通模式
+                    editRemoteGroup.style.display = 'block';
+                    editFinalTargetGroup.style.display = 'none';
+                    editMultiplexBadgeGroup.style.display = 'none';
+                    editRemoteLabel.textContent = '远程地址 *';
+                    editRemoteHint.textContent = '目标服务器地址和端口';
+                    editRemote.required = true;
+                    editRemote.value = inst.config.remote || '';
+                } else if (multiplexMode === 1) {
+                    // 服务端模式
+                    editRemoteGroup.style.display = 'block';
+                    editFinalTargetGroup.style.display = 'none';
+                    editMultiplexBadgeGroup.style.display = 'block';
+                    editRemoteLabel.textContent = '默认远程地址（可选）';
+                    editRemoteHint.textContent = '服务端模式下可不填，实际目标由客户端指定';
+                    editRemote.required = false;
+                    const remote = inst.config.remote || '';
+                    editRemote.value = (remote === '127.0.0.1:1') ? '' : remote;
+                    
+                    document.getElementById('editMultiplexBadge').innerHTML = 
+                        '<span style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:white;padding:6px 16px;border-radius:12px;font-size:13px;font-weight:600;">服务端模式</span>';
+                } else if (multiplexMode === 2) {
+                    // 客户端模式
+                    editRemoteGroup.style.display = 'block';
+                    editFinalTargetGroup.style.display = 'block';
+                    editMultiplexBadgeGroup.style.display = 'block';
+                    editRemoteLabel.textContent = '复用服务器地址 *';
+                    editRemoteHint.textContent = '端口复用服务端地址';
+                    editRemote.required = true;
+                    editRemote.value = inst.config.remote || '';
+                    editFinalTarget.value = inst.config.final_target || '';
+                    
+                    document.getElementById('editMultiplexBadge').innerHTML = 
+                        '<span style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;padding:6px 16px;border-radius:12px;font-size:13px;font-weight:600;">客户端模式</span>';
+                }
+                
+                document.getElementById('editInstanceModal').classList.add('active');
+            } catch (e) {
+                console.error('Error showing edit modal:', e);
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        function closeEditInstanceModal() {
+            document.getElementById('editInstanceModal').classList.remove('active');
+            document.getElementById('editInstanceForm').reset();
+        }
+
+        let currentEditingInstance = null;  // 保存当前正在编辑的实例
+        
+        async function updateInstance(e) {
+            e.preventDefault();
+            const form = e.target;
+            const agentId = form.agent_id.value;
+            const instanceId = form.instance_id.value;
+            
+            console.log('[更新转发] Agent ID:', agentId, ', Instance ID:', instanceId);
+            
+            if (!agentId) {
+                showToast('错误: Agent ID 为空', 'error');
+                return;
+            }
+            const multiplexMode = parseInt(form.multiplex_mode.value);
+            
+            // 构建配置
+            let config = {
+                listen: form.listen.value.trim(),
+                multiplex_mode: multiplexMode
+            };
+            
+            // 🔧 保留 owner_user_id（如果存在）
+            if (currentEditingInstance && currentEditingInstance.config.owner_user_id) {
+                config.owner_user_id = currentEditingInstance.config.owner_user_id;
+            }
+            
+            // 🔧 保留 owner_user_id（如果存在）
+            if (currentEditingInstance && currentEditingInstance.config.owner_user_id) {
+                config.owner_user_id = currentEditingInstance.config.owner_user_id;
+            }
+            
+            // 根据模式处理远程地址
+            if (multiplexMode === 0) {
+                // 普通模式：必须有远程地址
+                const remote = form.remote.value.trim();
+                if (!remote) {
+                    showToast('请填写远程地址', 'error');
+                    return;
+                }
+                config.remote = remote;
+            } else if (multiplexMode === 1) {
+                // 服务端模式：远程地址可选
+                const remote = form.remote.value.trim();
+                config.remote = remote || '127.0.0.1:1';
+            } else if (multiplexMode === 2) {
+                // 客户端模式：需要远程地址和最终目标
+                const remote = form.remote.value.trim();
+                const finalTarget = form.final_target.value.trim();
+                
+                if (!remote) {
+                    showToast('请填写复用服务器地址', 'error');
+                    return;
+                }
+                if (!finalTarget) {
+                    showToast('请填写最终目标地址', 'error');
+                    return;
+                }
+                
+                config.remote = remote;
+                config.final_target = finalTarget;
+            }
+            
+            try {
+                const response = await fetch(`/api/agents/${agentId}/instances/${instanceId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('转发更新成功！', 'success');
+                    closeEditInstanceModal();
+                    setTimeout(async () => {
+                        lastInstancesData = null;
+                        await smartRefreshInstances(agentId);
+                    }, 500);
+                } else {
+                    showToast('更新失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        // updateInstance 已禁用 - 端口复用配置暂不支持编辑
+        /*
+        async function updateInstance(e) {
+            e.preventDefault();
+            // 功能已禁用
+        }
+        */
+
+        async function startAgentInstance(agentId, instanceId) {
+            try {
+                const res = await fetch(`/api/agents/${agentId}/instances/${instanceId}/start`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('启动命令已发送', 'success');
+                    setTimeout(async () => {
+                        lastInstancesData = null;
+                        await smartRefreshInstances(agentId);
+                    }, 500);
+                } else {
+                    showToast('启动失败: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        async function stopAgentInstance(agentId, instanceId) {
+            if (!confirm('确定停止此转发？')) return;
+            try {
+                const res = await fetch(`/api/agents/${agentId}/instances/${instanceId}/stop`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('停止命令已发送', 'success');
+                    setTimeout(async () => {
+                        lastInstancesData = null;
+                        await smartRefreshInstances(agentId);
+                    }, 500);
+                } else {
+                    showToast('停止失败: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        async function restartAgentInstance(agentId, instanceId) {
+            if (!confirm('确定重启此转发？')) return;
+            try {
+                const res = await fetch(`/api/agents/${agentId}/instances/${instanceId}/restart`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('重启命令已发送', 'success');
+                    setTimeout(async () => {
+                        lastInstancesData = null;
+                        await smartRefreshInstances(agentId);
+                    }, 500);
+                } else {
+                    showToast('重启失败: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteAgentInstance(agentId, instanceId) {
+            if (!confirm('确定删除此转发？此操作不可恢复！')) return;
+            try {
+                const res = await fetch(`/api/agents/${agentId}/instances/${instanceId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('删除命令已发送', 'success');
+                    setTimeout(async () => {
+                        lastInstancesData = null;
+                        await smartRefreshInstances(agentId);
+                    }, 500);
+                } else {
+                    showToast('删除失败: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+
+        function showEditNoteModal(agentId, instanceId, currentNote) {
+            document.getElementById('editNoteAgentId').value = agentId;
+            document.getElementById('editNoteInstanceId').value = instanceId;
+            const note = (currentNote || '').replace(/&apos;/g, "'");
+            document.getElementById('editNoteText').value = note;
+            document.getElementById('editNoteModal').classList.add('active');
+        }
+
+        function closeEditNoteModal() {
+            document.getElementById('editNoteModal').classList.remove('active');
+        }
+
+        function showChangePasswordModal() {
+            document.getElementById("changePasswordModal").classList.add("active");
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById("changePasswordModal").classList.remove("active");
+            document.getElementById("changePasswordForm").reset();
+        }
+
+        async function updateInstanceNote(e) {
+            e.preventDefault();
+            const agentId = document.getElementById('editNoteAgentId').value;
+            const instanceId = document.getElementById('editNoteInstanceId').value;
+            const note = document.getElementById('editNoteText').value;
+
+            try {
+                const res = await fetch(`/api/agents/${agentId}/instances/${instanceId}/note`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ note })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('备注更新成功', 'success');
+                    closeEditNoteModal();
+                    
+                    // 立即更新页面上的备注显示
+                    const noteElement = document.getElementById(`note-${instanceId}`);
+                    if (noteElement) {
+                        noteElement.innerHTML = note ? escapeHtml(note) : '<span style="color:#ccc;">未设置</span>';
+                    }
+                    
+                    // 刷新实例列表
+                    setTimeout(async () => {
+                        lastInstancesData = null;
+                        await smartRefreshInstances(agentId);
+                    }, 300);
+                } else {
+                    showToast('备注更新失败: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showToast('错误: ' + e.message, 'error');
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const messageEl = document.getElementById('toastMessage');
+
+            const icons = {
+                success: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:20px;height:20px;display:block;">
+        <polyline points="20 6 9 17 4 12"/>
+    </svg>`,
+                error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:20px;height:20px;display:block;">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>`,
+                warning: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:block;">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>`
+            };
+
+            icon.innerHTML = icons[type] || icons.success;
+            messageEl.textContent = message;
+            toast.className = `toast ${type} active`;
+
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 3000);
+        }
+
+        async function changePassword(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const oldPassword = formData.get('old_password');
+            const newPassword = formData.get('new_password');
+            const confirmPassword = formData.get('confirm_password');
+
+            if (newPassword !== confirmPassword) {
+                showToast('新密码两次输入不一致', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('密码修改成功', 'success');
+                    closeChangePasswordModal();
+                } else {
+                    showToast('修改失败: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showToast('修改错误: ' + error.message, 'error');
+            }
+        }
+
+    </script>
+    <script>
+        // 点击模态框外部关闭
+        // 修复：点击模态框外部关闭
+        (function() {
+            const modals = ['editNoteModal', 'editInstanceModal', 'addInstanceModal', 'addAgentModal', 'editAgentModal', 'agentInfoModal', 'addServerModal', 'changePasswordModal'];
+            
+            // 为每个模态框添加点击事件
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (!modal) return;
+                
+                modal.addEventListener('click', function(event) {
+                    // 只有点击模态框背景本身才关闭（不是点击内容区域）
+                    if (event.target === modal) {
+                        modal.classList.remove('active');
+                    }
+                });
+            });
+        })();
+    
+        function copyApiKey() {
+            const apiKeyField = document.getElementById('editAgentApiKey');
+            const apiKey = apiKeyField.value;
+            
+            if (apiKey && apiKey !== '********') {
+                navigator.clipboard.writeText(apiKey).then(() => {
+                    showToast('API Key 已复制', 'success');
+                }).catch(err => {
+                    showToast('复制失败', 'error');
+                });
+            }
+        }
+
+
+
+    </script>
+    
+<!-- 版权信息 -->
+<div style="text-align: center; margin-top: 30px;">
+    <div style="color: #a0aec0; font-size: 13px;">
+        <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
+        <p style="color: var(--primary); margin: 0;">Version 26.1.12</p>
+    </div>
+</div>
+
+    <script>
+        // === 广告随机展示脚本 ===
+        (function() {
+            // 广告配置数组
+            const adConfigs = [
+                {
+                    href: "https://gomami.io/",
+                    iframeSrc: "https://gomami.io/assets/ad/gomami-banner-embed.html"
+                },
+                {
+                    href: "https://peekabo.io/",
+                    iframeSrc: "https://103.73.220.250/cdn_banner.html"
+                },
+                {
+                    href: "https://gomami.io/",
+                    iframeSrc: "https://gomami.io/assets/ad/gomami-banner-embed.html"
+                }
+            ];
+
+            // 随机选择一个广告
+            function loadRandomAd() {
+                const randomIndex = Math.floor(Math.random() * adConfigs.length);
+                const selectedAd = adConfigs[randomIndex];
+                
+                const adSlot = document.getElementById('randomAdSlot');
+                if (!adSlot) return;
+                
+                // 生成广告HTML
+                adSlot.innerHTML = `
+                    <a href="${selectedAd.href}" target="_blank" style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        z-index: 10;
+                        cursor: pointer;
+                    "></a>
+                    <iframe 
+                        src="${selectedAd.iframeSrc}" 
+                        style=""
+                        allowfullscreen="false">
+                    </iframe>
+                `;
+            }
+
+            // 页面加载时执行
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', loadRandomAd);
+            } else {
+                loadRandomAd();
+            }
+        })();
+    </script>
+</body>
+</html>

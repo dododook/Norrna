@@ -1,0 +1,17 @@
+[Unit]
+Description=Norrna Manager
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/norrna
+ExecStart=/opt/norrna/norrna-manager --webport 3000 --agentport 3001 --data-dir /opt/norrna/data
+Restart=always
+RestartSec=5
+LimitNOFILE=1048576
+LimitNPROC=1048576
+
+[Install]
+WantedBy=multi-user.target
