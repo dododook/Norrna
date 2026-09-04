@@ -16,6 +16,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build
         run: cargo build --release --workspace
+      - name: Fetch official Realm
+        run: |
+          set -e
+          curl -fL --retry 5 -o realm.tar.gz \
+            https://github.com/zhboner/realm/releases/download/v2.9.6/realm-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf realm.tar.gz
+          chmod +x realm
+          ./realm -v || ./realm --version
       - name: Upload binaries
         uses: softprops/action-gh-release@v2
         with:
@@ -23,6 +31,7 @@ jobs:
           files: |
             target/release/norrna
             target/release/norrna-manager
+            realm
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

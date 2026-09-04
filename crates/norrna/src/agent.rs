@@ -1,21 +1,30 @@
+use crate::realm::{endpoint_from, load_global, RealmEngine};
 use crate::relay::{spawn_instance, Running};
 use anyhow::Result;
 use chrono::Utc;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use norrna_proto::{read_frame, write_frame, Instance, InstanceConfig, WireMsg};
 
+enum RunKind {
+    Overlay(Running),
+    Realm,
+}
+
 pub struct Agent {
     store: PathBuf,
+    conf_path: PathBuf,
     instances: Mutex<HashMap<String, Instance>>,
-    running: Mutex<HashMap<String, Running>>,
+    running: Mutex<HashMap<String, RunKind>>,
+    realm: Arc<RealmEngine>,
 }
 
 impl Agent {
-    pub async fn open(dir: &Path) -> Result<Self> {
+    pub async fn open(dir: &Path, data_dir: &Path, conf: Option<PathBuf>) -> Result<Self> {
         tokio::fs::create_dir_all(dir).await?;
         let path = dir.join("norrna.json");
         let instances = match tokio::fs::read(&path).await {
@@ -23,20 +32,69 @@ impl Agent {
             Err(_) => vec![],
         };
         let map: HashMap<_, _> = instances.into_iter().map(|i| (i.id.clone(), i)).collect();
+        let conf_path = conf.unwrap_or_else(|| data_dir.join("norrna.conf"));
+        let realm = Arc::new(RealmEngine::discover(data_dir));
         let agent = Self {
             store: path,
+            conf_path,
             instances: Mutex::new(map),
             running: Mutex::new(HashMap::new()),
+            realm: realm.clone(),
         };
         let snapshot: Vec<_> = agent.instances.lock().await.values().cloned().collect();
+        let mut need_realm = false;
         for inst in snapshot {
             if inst.auto_start && inst.status == "Running" {
-                if let Err(e) = agent.start(&inst.id).await {
+                if inst.config.multiplex_mode == 0 {
+                    agent.running.lock().await.insert(inst.id.clone(), RunKind::Realm);
+                    need_realm = true;
+                } else if let Err(e) = agent.start(&inst.id).await {
                     tracing::warn!("restore {} failed: {e}", inst.id);
                 }
             }
         }
+        if need_realm {
+            if let Err(e) = agent.sync_realm().await {
+                tracing::warn!("restore realm kernel failed: {e}");
+                let mut run = agent.running.lock().await;
+                let mut insts = agent.instances.lock().await;
+                run.retain(|id, k| {
+                    if matches!(k, RunKind::Realm) {
+                        if let Some(i) = insts.get_mut(id) {
+                            i.status = "Stopped".into();
+                        }
+                        false
+                    } else {
+                        true
+                    }
+                });
+                drop(run);
+                drop(insts);
+                let _ = agent.persist().await;
+            }
+        }
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_secs(5)).await;
+                realm.respawn_if_dead().await;
+            }
+        });
         Ok(agent)
+    }
+
+    async fn sync_realm(&self) -> Result<()> {
+        let running = self.running.lock().await;
+        let instances = self.instances.lock().await;
+        let endpoints: Vec<_> = running
+            .iter()
+            .filter(|(_, k)| matches!(k, RunKind::Realm))
+            .filter_map(|(id, _)| instances.get(id))
+            .map(|i| endpoint_from(&i.config))
+            .collect();
+        drop(instances);
+        drop(running);
+        let global = load_global(&self.conf_path);
+        self.realm.sync(&endpoints, &global).await
     }
 
     async fn persist(&self) -> Result<()> {
@@ -97,18 +155,38 @@ impl Agent {
         let mut inst = inst;
         inst.status = "Running".into();
         inst.updated_at = Utc::now().to_rfc3339();
-        let running = spawn_instance(inst.clone()).await?;
-        self.running.lock().await.insert(id.to_string(), running);
+        if inst.config.multiplex_mode == 0 {
+            self.running.lock().await.insert(id.to_string(), RunKind::Realm);
+            if let Err(e) = self.sync_realm().await {
+                self.running.lock().await.remove(id);
+                return Err(e);
+            }
+        } else {
+            let running = spawn_instance(inst.clone()).await?;
+            self.running
+                .lock()
+                .await
+                .insert(id.to_string(), RunKind::Overlay(running));
+        }
         self.instances.lock().await.insert(id.to_string(), inst.clone());
         self.persist().await?;
         Ok(inst)
     }
 
     pub async fn stop(&self, id: &str) -> Result<Instance> {
-        if let Some(r) = self.running.lock().await.remove(id) {
-            r.abort();
-        } else {
-            anyhow::bail!("Instance is not running");
+        let kind = self
+            .running
+            .lock()
+            .await
+            .remove(id)
+            .ok_or_else(|| anyhow::anyhow!("Instance is not running"))?;
+        match kind {
+            RunKind::Overlay(r) => r.abort(),
+            RunKind::Realm => {
+                if let Err(e) = self.sync_realm().await {
+                    tracing::warn!("realm resync after stop failed: {e}");
+                }
+            }
         }
         let mut g = self.instances.lock().await;
         let inst = g.get_mut(id).ok_or_else(|| anyhow::anyhow!("Instance not found"))?;
@@ -167,8 +245,14 @@ impl Agent {
     }
 }
 
-pub async fn run_agent(server: &str, key: &str, name: Option<String>, data_dir: PathBuf) -> Result<()> {
-    let agent = Agent::open(&data_dir.join("instances")).await?;
+pub async fn run_agent(
+    server: &str,
+    key: &str,
+    name: Option<String>,
+    data_dir: PathBuf,
+    conf: Option<PathBuf>,
+) -> Result<()> {
+    let agent = Agent::open(&data_dir.join("instances"), &data_dir, conf).await?;
     let hostname = hostname::get()
         .ok()
         .and_then(|h| h.into_string().ok())

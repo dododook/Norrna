@@ -1,6 +1,6 @@
 # Norrna
 
-轻量级转发面板：Web 管理多节点 Agent，创建 TCP/UDP 转发与端口复用。
+轻量级转发面板：Web 管理多节点 Agent。普通 TCP/UDP 转发由官方 [Realm](https://github.com/zhboner/realm)（v2.9.6）完成，端口复用由 Agent 叠加。
 
 ## 编译
 
@@ -15,7 +15,9 @@ cargo build --release
 产物：
 
 - `target/release/norrna-manager` 面板
-- `target/release/norrna` Agent / 转发内核
+- `target/release/norrna` Agent（调度 Realm / 端口复用）
+
+Agent 安装脚本会再下载官方 `realm` 到 `/etc/norrna/realm`。
 
 ## 安装面板
 
@@ -52,7 +54,14 @@ bash scripts/norrna_manager.sh webport=3000 agentport=3001
 bash scripts/norrna_agent.sh server=面板IP:3001 apikey=你的KEY
 ```
 
-Agent 安装到 `/etc/norrna`，配置为 `/etc/norrna/norrna.conf`。
+Agent 安装到 `/etc/norrna`：
+
+| 项 | 路径 |
+|---|---|
+| Agent | `/etc/norrna/norrna` |
+| 官方 Realm | `/etc/norrna/realm` |
+| 全局配置（DNS/网络） | `/etc/norrna/norrna.conf` |
+| Realm 运行配置 | `/etc/norrna/realm-runtime.json` |
 
 ## 手动启动（不装 systemd）
 
@@ -61,15 +70,17 @@ Agent 安装到 `/etc/norrna`，配置为 `/etc/norrna/norrna.conf`。
 ./norrna api --server 127.0.0.1:3001 --key YOUR_KEY
 ```
 
-## 端口复用
+## 转发内核
 
-| multiplex_mode | 含义 |
-|---|---|
-| 0 | 普通转发 listen ↔ remote |
-| 1 | 服务端，入站 `NORRNAMX` 头转到最终目标 |
-| 2 | 客户端，连到复用口并带上 `final_target` |
+| multiplex_mode | 内核 | 含义 |
+|---|---|---|
+| 0 | 官方 Realm | 普通转发 listen ↔ remote（含 UDP、PROXY、WS/TLS 等 Realm 能力，配置写进 `network`） |
+| 1 | Norrna overlay | 服务端，入站 `NORRNAMX` 头转到最终目标 |
+| 2 | Norrna overlay | 客户端，连到复用口并带上 `final_target` |
 
-UDP 魔数：`NORRNAUDP`。
+UDP 复用魔数：`NORRNAUDP`。官方 Realm 没有 Zelay 那套端口复用协议，所以 1/2 仍由 Agent 自己转。
+
+可执行文件查找顺序：`NORRNA_REALM` → `/etc/norrna/realm` → 与 `norrna` 同目录 → `PATH`。
 
 ## 目录
 

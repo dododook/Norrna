@@ -28,3 +28,6 @@ echo "  $PREFIX/norrna-manager --webport $WEBPORT --agentport $AGENTPORT --data-
 echo
 echo "启动 Agent（先在面板创建 Agent 拿到 key）："
 echo "  $PREFIX/norrna api --server 127.0.0.1:$AGENTPORT --key YOUR_KEY"
+echo
+echo "普通转发需要官方 realm，放到 $PREFIX/realm 或 PATH："
+echo "  https://github.com/zhboner/realm/releases/tag/v2.9.6"
