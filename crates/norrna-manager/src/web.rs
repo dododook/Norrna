@@ -76,7 +76,10 @@ pub fn router(state: AppState) -> Router {
         .with_state(state)
 }
 
-const AGENT_SH: &str = include_str!("../../../scripts/norrna_agent.sh");
+const AGENT_SH: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../scripts/norrna_agent.sh"
+));
 
 async fn serve_agent_script(headers: HeaderMap) -> Response {
     let host = headers

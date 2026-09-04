@@ -270,6 +270,14 @@ fn sample_memory() -> (u64, u64) {
     (total.saturating_sub(avail), total)
 }
 
+fn ok_json(msg: &str, v: impl serde::Serialize) -> (bool, String, serde_json::Value) {
+    (true, msg.into(), serde_json::to_value(v).unwrap_or(serde_json::Value::Null))
+}
+
+fn err_json(msg: String) -> (bool, String, serde_json::Value) {
+    (false, msg, serde_json::Value::Null)
+}
+
 async fn handle_cmd(
     agent: &Agent,
     command: &str,
@@ -277,100 +285,66 @@ async fn handle_cmd(
     config: Option<InstanceConfig>,
     note: Option<String>,
 ) -> (bool, String, serde_json::Value) {
-    let r = match command {
-        "list_instances" => agent.list().await.pipe(|v| serde_json::to_value(v).unwrap()).ok_msg("ok"),
+    match command {
+        "list_instances" => ok_json("ok", agent.list().await),
         "create_instance" => match config {
             Some(c) => match agent.create(c, note).await {
-                Ok(i) => (true, "Instance started successfully".into(), serde_json::to_value(i).unwrap()),
-                Err(e) => (false, e.to_string(), serde_json::Value::Null),
+                Ok(i) => ok_json("Instance started successfully", i),
+                Err(e) => err_json(e.to_string()),
             },
-            None => (false, "Missing config parameter".into(), serde_json::Value::Null),
+            None => err_json("Missing config parameter".into()),
         },
-        "start_instance" => inst(agent, instance_id, |a, id| async move { a.start(&id).await }).await,
-        "stop_instance" => inst(agent, instance_id, |a, id| async move { a.stop(&id).await }).await,
-        "restart_instance" => {
-            inst(agent, instance_id, |a, id| async move { a.restart(&id).await }).await
-        }
+        "start_instance" => match instance_id {
+            Some(id) => match agent.start(&id).await {
+                Ok(i) => ok_json("Instance started successfully", i),
+                Err(e) => err_json(e.to_string()),
+            },
+            None => err_json("Missing instance_id parameter".into()),
+        },
+        "stop_instance" => match instance_id {
+            Some(id) => match agent.stop(&id).await {
+                Ok(i) => ok_json("Instance stopped successfully", i),
+                Err(e) => err_json(e.to_string()),
+            },
+            None => err_json("Missing instance_id parameter".into()),
+        },
+        "restart_instance" => match instance_id {
+            Some(id) => match agent.restart(&id).await {
+                Ok(i) => ok_json("Instance restarted successfully", i),
+                Err(e) => err_json(e.to_string()),
+            },
+            None => err_json("Missing instance_id parameter".into()),
+        },
         "delete_instance" => match instance_id {
             Some(id) => match agent.delete(&id).await {
-                Ok(()) => (true, "Instance deleted successfully".into(), serde_json::Value::Null),
-                Err(e) => (false, e.to_string(), serde_json::Value::Null),
+                Ok(()) => ok_json("Instance deleted successfully", serde_json::Value::Null),
+                Err(e) => err_json(e.to_string()),
             },
-            None => (false, "Missing instance_id parameter".into(), serde_json::Value::Null),
+            None => err_json("Missing instance_id parameter".into()),
         },
         "update_instance" => match (instance_id, config) {
             (Some(id), Some(c)) => match agent.update(&id, c, note).await {
-                Ok(i) => (
-                    true,
-                    "Instance updated and restarted successfully".into(),
-                    serde_json::to_value(i).unwrap(),
-                ),
-                Err(e) => (false, e.to_string(), serde_json::Value::Null),
+                Ok(i) => ok_json("Instance updated and restarted successfully", i),
+                Err(e) => err_json(e.to_string()),
             },
-            (None, _) => (false, "Missing instance_id parameter".into(), serde_json::Value::Null),
-            (_, None) => (false, "Missing 'config' parameter".into(), serde_json::Value::Null),
+            (None, _) => err_json("Missing instance_id parameter".into()),
+            (_, None) => err_json("Missing 'config' parameter".into()),
         },
         "update_note" => match (instance_id, note) {
             (Some(id), Some(n)) => match agent.update_note(&id, n).await {
-                Ok(i) => (true, "Note updated successfully".into(), serde_json::to_value(i).unwrap()),
-                Err(e) => (false, e.to_string(), serde_json::Value::Null),
+                Ok(i) => ok_json("Note updated successfully", i),
+                Err(e) => err_json(e.to_string()),
             },
-            (_, None) => (false, "Missing note parameter".into(), serde_json::Value::Null),
-            (None, _) => (false, "Missing instance_id parameter".into(), serde_json::Value::Null),
+            (_, None) => err_json("Missing note parameter".into()),
+            (None, _) => err_json("Missing instance_id parameter".into()),
         },
         "get_instance" => match instance_id {
-            Some(id) => {
-                let list = agent.list().await;
-                match list.into_iter().find(|i| i.id == id) {
-                    Some(i) => (true, "ok".into(), serde_json::to_value(i).unwrap()),
-                    None => (false, "Instance not found".into(), serde_json::Value::Null),
-                }
-            }
-            None => (false, "Missing instance_id parameter".into(), serde_json::Value::Null),
+            Some(id) => match agent.list().await.into_iter().find(|i| i.id == id) {
+                Some(i) => ok_json("ok", i),
+                None => err_json("Instance not found".into()),
+            },
+            None => err_json("Missing instance_id parameter".into()),
         },
-        _ => (false, "Unknown error".into(), serde_json::Value::Null),
-    };
-    r
-}
-
-trait OkMsg {
-    fn ok_msg(self, m: &str) -> (bool, String, serde_json::Value);
-}
-impl OkMsg for serde_json::Value {
-    fn ok_msg(self, m: &str) -> (bool, String, serde_json::Value) {
-        (true, m.into(), self)
-    }
-}
-trait Pipe<T> {
-    fn pipe<U>(self, f: impl FnOnce(T) -> U) -> U;
-}
-impl<T> Pipe<T> for T {
-    fn pipe<U>(self, f: impl FnOnce(T) -> U) -> U {
-        f(self)
-    }
-}
-
-async fn inst<F, Fut>(
-    agent: &Agent,
-    instance_id: Option<String>,
-    f: F,
-) -> (bool, String, serde_json::Value)
-where
-    F: FnOnce(&Agent, String) -> Fut,
-    Fut: std::future::Future<Output = Result<Instance>>,
-{
-    match instance_id {
-        Some(id) => match f(agent, id).await {
-            Ok(i) => {
-                let msg = match i.status.as_str() {
-                    "Running" => "Instance started successfully",
-                    "Stopped" => "Instance stopped successfully",
-                    _ => "ok",
-                };
-                (true, msg.into(), serde_json::to_value(i).unwrap())
-            }
-            Err(e) => (false, e.to_string(), serde_json::Value::Null),
-        },
-        None => (false, "Missing instance_id parameter".into(), serde_json::Value::Null),
+        _ => err_json("Unknown error".into()),
     }
 }
