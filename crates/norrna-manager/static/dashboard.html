@@ -1861,9 +1861,13 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
             }
         }
 
+        function instanceBase(id) {
+            return viewMode === 'servers' ? `/api/servers/${id}` : `/api/agents/${id}`;
+        }
+
         async function smartRefreshInstances(agentId) {
             try {
-                const res = await fetch(`/api/agents/${agentId}/instances`);
+                const res = await fetch(`${instanceBase(agentId)}/instances`);
                 const data = await res.json();
                 
                 if (data.success) {
@@ -2155,10 +2159,39 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
         async function selectServer(id) {
             console.log('Selecting server:', id);
             currentServerId = id;
+            currentAgentId = id;
+            lastInstancesData = null;
+            instancePage = 1;
+            instanceSearchQuery = '';
             renderServersList();
-
             const container = document.getElementById('instancesContent');
-            container.innerHTML = '<div class="empty-state"><p>服务器转发管理功能开发中...</p></div>';
+            const server = servers.find(s => s.id === id);
+            if (!server) {
+                container.innerHTML = '<div class="empty-state"><h3>服务器不存在</h3></div>';
+                return;
+            }
+            if (server.status !== 'connected') {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>${escapeHtml(server.name)}</h3>
+                        <p style="color:#ef4444;margin-top:10px;">服务器未连接，请先点击连接</p>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>正在加载转发...</p></div>';
+            try {
+                const res = await fetch(`${instanceBase(id)}/instances`);
+                const data = await res.json();
+                if (data.success) {
+                    const insts = data.data || [];
+                    lastInstancesData = JSON.parse(JSON.stringify(insts));
+                    renderAgentInstances({ id: server.id, name: server.name, status: 'online' }, insts);
+                } else {
+                    container.innerHTML = `<div class="empty-state"><p>${escapeHtml(data.message || '加载失败')}</p></div>`;
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`;
+            }
         }
 
         async function selectAgent(id) {
@@ -3110,7 +3143,7 @@ async function createInstance(e) {
             };
 
             try {
-                const response = await fetch(`/api/agents/${agentId}/instances`, {
+                const response = await fetch(`${instanceBase(agentId)}/instances`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestBody)
@@ -3280,7 +3313,7 @@ async function createInstance(e) {
             }
             
             try {
-                const response = await fetch(`/api/agents/${agentId}/instances/${instanceId}`, {
+                const response = await fetch(`${instanceBase(agentId)}/instances/${instanceId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ config })
@@ -3312,7 +3345,7 @@ async function createInstance(e) {
 
         async function startAgentInstance(agentId, instanceId) {
             try {
-                const res = await fetch(`/api/agents/${agentId}/instances/${instanceId}/start`, { method: 'POST' });
+                const res = await fetch(`${instanceBase(agentId)}/instances/${instanceId}/start`, { method: 'POST' });
                 const data = await res.json();
                 if (data.success) {
                     showToast('启动命令已发送', 'success');
@@ -3331,7 +3364,7 @@ async function createInstance(e) {
         async function stopAgentInstance(agentId, instanceId) {
             if (!confirm('确定停止此转发？')) return;
             try {
-                const res = await fetch(`/api/agents/${agentId}/instances/${instanceId}/stop`, { method: 'POST' });
+                const res = await fetch(`${instanceBase(agentId)}/instances/${instanceId}/stop`, { method: 'POST' });
                 const data = await res.json();
                 if (data.success) {
                     showToast('停止命令已发送', 'success');
@@ -3350,7 +3383,7 @@ async function createInstance(e) {
         async function restartAgentInstance(agentId, instanceId) {
             if (!confirm('确定重启此转发？')) return;
             try {
-                const res = await fetch(`/api/agents/${agentId}/instances/${instanceId}/restart`, { method: 'POST' });
+                const res = await fetch(`${instanceBase(agentId)}/instances/${instanceId}/restart`, { method: 'POST' });
                 const data = await res.json();
                 if (data.success) {
                     showToast('重启命令已发送', 'success');
@@ -3369,7 +3402,7 @@ async function createInstance(e) {
         async function deleteAgentInstance(agentId, instanceId) {
             if (!confirm('确定删除此转发？此操作不可恢复！')) return;
             try {
-                const res = await fetch(`/api/agents/${agentId}/instances/${instanceId}`, { method: 'DELETE' });
+                const res = await fetch(`${instanceBase(agentId)}/instances/${instanceId}`, { method: 'DELETE' });
                 const data = await res.json();
                 if (data.success) {
                     showToast('删除命令已发送', 'success');
@@ -3414,7 +3447,7 @@ async function createInstance(e) {
             const note = document.getElementById('editNoteText').value;
 
             try {
-                const res = await fetch(`/api/agents/${agentId}/instances/${instanceId}/note`, {
+                const res = await fetch(`${instanceBase(agentId)}/instances/${instanceId}/note`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ note })
@@ -3553,7 +3586,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">Version 26.1.13</p>
+        <p style="color: var(--primary); margin: 0;">Version 26.1.15</p>
     </div>
 </div>
 

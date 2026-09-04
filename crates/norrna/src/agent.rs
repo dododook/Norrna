@@ -1,4 +1,4 @@
-use crate::realm::{endpoint_from, load_global, RealmEngine};
+use crate::realm::{load_global, RealmEngine};
 use crate::relay::{spawn_instance, Running};
 use anyhow::Result;
 use chrono::Utc;
@@ -6,9 +6,10 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::net::TcpStream;
+use tokio::io::{BufReader, BufWriter};
+use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
-use norrna_proto::{read_frame, write_frame, Instance, InstanceConfig, WireMsg};
+use norrna_proto::{split_crypto, Instance, InstanceConfig, WireMsg};
 
 enum RunKind {
     Overlay(Running),
@@ -42,35 +43,21 @@ impl Agent {
             realm: realm.clone(),
         };
         let snapshot: Vec<_> = agent.instances.lock().await.values().cloned().collect();
-        let mut need_realm = false;
         for inst in snapshot {
             if inst.auto_start && inst.status == "Running" {
-                if inst.config.multiplex_mode == 0 {
-                    agent.running.lock().await.insert(inst.id.clone(), RunKind::Realm);
-                    need_realm = true;
-                } else if let Err(e) = agent.start(&inst.id).await {
-                    tracing::warn!("restore {} failed: {e}", inst.id);
-                }
-            }
-        }
-        if need_realm {
-            if let Err(e) = agent.sync_realm().await {
-                tracing::warn!("restore realm kernel failed: {e}");
-                let mut run = agent.running.lock().await;
-                let mut insts = agent.instances.lock().await;
-                run.retain(|id, k| {
-                    if matches!(k, RunKind::Realm) {
-                        if let Some(i) = insts.get_mut(id) {
-                            i.status = "Stopped".into();
-                        }
-                        false
-                    } else {
-                        true
+                {
+                    let mut g = agent.instances.lock().await;
+                    if let Some(i) = g.get_mut(&inst.id) {
+                        i.status = "Stopped".into();
                     }
-                });
-                drop(run);
-                drop(insts);
-                let _ = agent.persist().await;
+                }
+                if let Err(e) = agent.start(&inst.id).await {
+                    tracing::warn!("restore {} failed: {e}", inst.id);
+                    if let Some(i) = agent.instances.lock().await.get_mut(&inst.id) {
+                        i.status = "Stopped".into();
+                    }
+                    let _ = agent.persist().await;
+                }
             }
         }
         tokio::spawn(async move {
@@ -82,21 +69,6 @@ impl Agent {
         Ok(agent)
     }
 
-    async fn sync_realm(&self) -> Result<()> {
-        let running = self.running.lock().await;
-        let instances = self.instances.lock().await;
-        let endpoints: Vec<_> = running
-            .iter()
-            .filter(|(_, k)| matches!(k, RunKind::Realm))
-            .filter_map(|(id, _)| instances.get(id))
-            .map(|i| endpoint_from(&i.config))
-            .collect();
-        drop(instances);
-        drop(running);
-        let global = load_global(&self.conf_path);
-        self.realm.sync(&endpoints, &global).await
-    }
-
     async fn persist(&self) -> Result<()> {
         let list: Vec<_> = self.instances.lock().await.values().cloned().collect();
         tokio::fs::write(&self.store, serde_json::to_vec_pretty(&list)?).await?;
@@ -105,6 +77,24 @@ impl Agent {
 
     pub async fn list(&self) -> Vec<Instance> {
         self.instances.lock().await.values().cloned().collect()
+    }
+
+    pub async fn mux_info(&self) -> (bool, u16) {
+        let running = self.running.lock().await;
+        let insts = self.instances.lock().await;
+        for (id, k) in running.iter() {
+            if matches!(k, RunKind::Overlay(_)) {
+                if let Some(i) = insts.get(id) {
+                    if i.config.multiplex_mode == 1 {
+                        let port = norrna_proto::parse_socket_addr(&i.config.listen)
+                            .map(|a| a.port())
+                            .unwrap_or(0);
+                        return (true, port);
+                    }
+                }
+            }
+        }
+        (true, 0)
     }
 
     pub async fn create(&self, mut config: InstanceConfig, note: Option<String>) -> Result<Instance> {
@@ -129,6 +119,14 @@ impl Agent {
             created_at: now.clone(),
             updated_at: now,
         };
+        tracing::info!(
+            "Creating instance ({})",
+            match inst.config.multiplex_mode {
+                1 => "Server mode",
+                2 => "Client mode",
+                _ => "Normal mode",
+            }
+        );
         self.instances.lock().await.insert(inst.id.clone(), inst.clone());
         self.persist().await?;
         self.start(&inst.id).await?;
@@ -156,11 +154,9 @@ impl Agent {
         inst.status = "Running".into();
         inst.updated_at = Utc::now().to_rfc3339();
         if inst.config.multiplex_mode == 0 {
+            let global = load_global(&self.conf_path);
+            self.realm.start_one(id, &inst.config, &global).await?;
             self.running.lock().await.insert(id.to_string(), RunKind::Realm);
-            if let Err(e) = self.sync_realm().await {
-                self.running.lock().await.remove(id);
-                return Err(e);
-            }
         } else {
             let running = spawn_instance(inst.clone()).await?;
             self.running
@@ -182,11 +178,7 @@ impl Agent {
             .ok_or_else(|| anyhow::anyhow!("Instance is not running"))?;
         match kind {
             RunKind::Overlay(r) => r.abort(),
-            RunKind::Realm => {
-                if let Err(e) = self.sync_realm().await {
-                    tracing::warn!("realm resync after stop failed: {e}");
-                }
-            }
+            RunKind::Realm => self.realm.stop_one(id).await,
         }
         let mut g = self.instances.lock().await;
         let inst = g.get_mut(id).ok_or_else(|| anyhow::anyhow!("Instance not found"))?;
@@ -268,6 +260,37 @@ pub async fn run_agent(
     }
 }
 
+pub async fn run_passive(
+    port: u16,
+    key: &str,
+    name: Option<String>,
+    data_dir: PathBuf,
+    conf: Option<PathBuf>,
+) -> Result<()> {
+    let agent = Arc::new(Agent::open(&data_dir.join("instances"), &data_dir, conf).await?);
+    let hostname = hostname::get()
+        .ok()
+        .and_then(|h| h.into_string().ok())
+        .unwrap_or_else(|| "unknown".into());
+    let name = name.unwrap_or_else(|| hostname.clone());
+    let bind: std::net::SocketAddr = format!("[::]:{port}").parse()?;
+    let listener = TcpListener::bind(bind).await?;
+    tracing::info!("Server started successfully");
+    tracing::info!("[agent] passive API listening on {bind}");
+    loop {
+        let (stream, peer) = listener.accept().await?;
+        let agent = agent.clone();
+        let key = key.to_string();
+        let name = name.clone();
+        let hostname = hostname.clone();
+        tokio::spawn(async move {
+            if let Err(e) = serve_one(stream, &key, &name, &hostname, &agent).await {
+                tracing::warn!("[agent] {peer} {e}");
+            }
+        });
+    }
+}
+
 async fn connect_once(server: &str, key: &str, name: &str, hostname: &str, agent: &Agent) -> Result<()> {
     tracing::info!("[agent] Connecting to {server}");
     let stream = tokio::time::timeout(Duration::from_secs(30), TcpStream::connect(server))
@@ -276,23 +299,25 @@ async fn connect_once(server: &str, key: &str, name: &str, hostname: &str, agent
     let _ = stream.set_nodelay(true);
     tracing::info!("[agent] TCP connected");
     let (r, w) = stream.into_split();
-    let mut reader = tokio::io::BufReader::new(r);
-    let mut writer = tokio::io::BufWriter::new(w);
+    let mut reader = BufReader::new(r);
+    let mut writer = BufWriter::new(w);
+    let (mut enc_r, mut enc_w) = split_crypto();
 
     tracing::info!("[agent] Sending auth...");
-    write_frame(
-        &mut writer,
-        &WireMsg::Auth {
-            api_key: key.into(),
-            hostname: hostname.into(),
-            name: name.into(),
-        },
-    )
-    .await?;
+    enc_w
+        .write_frame(
+            &mut writer,
+            &WireMsg::Auth {
+                api_key: key.into(),
+                hostname: hostname.into(),
+                name: name.into(),
+            },
+        )
+        .await?;
     tracing::info!("[agent] Auth sent");
 
     tracing::info!("[agent] Waiting for auth response...");
-    let resp = tokio::time::timeout(Duration::from_secs(30), read_frame(&mut reader))
+    let resp = tokio::time::timeout(Duration::from_secs(30), enc_r.read_frame(&mut reader))
         .await
         .map_err(|_| anyhow::anyhow!("Auth response timeout"))??;
     match resp {
@@ -301,39 +326,129 @@ async fn connect_once(server: &str, key: &str, name: &str, hostname: &str, agent
         other => anyhow::bail!("[agent] Unexpected auth response type: {other:?}"),
     }
     tracing::info!("[agent] Entering command loop");
+    command_loop(&mut reader, &mut writer, enc_r, enc_w, agent, hostname).await
+}
 
+async fn serve_one(stream: TcpStream, key: &str, name: &str, hostname: &str, agent: &Agent) -> Result<()> {
+    let _ = stream.set_nodelay(true);
+    let (r, w) = stream.into_split();
+    let mut reader = BufReader::new(r);
+    let mut writer = BufWriter::new(w);
+    let (mut enc_r, mut enc_w) = split_crypto();
+    let first = tokio::time::timeout(Duration::from_secs(30), enc_r.read_frame(&mut reader))
+        .await
+        .map_err(|_| anyhow::anyhow!("Auth receive timeout"))??;
+    match first {
+        WireMsg::Auth { api_key, .. } if api_key == key => {}
+        WireMsg::Auth { .. } => {
+            let _ = enc_w
+                .write_frame(
+                    &mut writer,
+                    &WireMsg::AuthFail {
+                        message: "Invalid API key".into(),
+                    },
+                )
+                .await;
+            anyhow::bail!("Invalid API key");
+        }
+        _ => anyhow::bail!("Invalid API key"),
+    }
+    enc_w
+        .write_frame(
+            &mut writer,
+            &WireMsg::AuthSuccess {
+                agent_id: name.into(),
+                message: "Authentication successful".into(),
+            },
+        )
+        .await?;
+    command_loop(&mut reader, &mut writer, enc_r, enc_w, agent, hostname).await
+}
+
+async fn command_loop<R, W>(
+    reader: &mut R,
+    writer: &mut W,
+    mut enc_r: norrna_proto::EncReader,
+    mut enc_w: norrna_proto::EncWriter,
+    agent: &Agent,
+    hostname: &str,
+) -> Result<()>
+where
+    R: tokio::io::AsyncRead + Unpin,
+    W: tokio::io::AsyncWrite + Unpin,
+{
+    let mut cpu = CpuSampler::default();
     let mut ticker = tokio::time::interval(Duration::from_secs(15));
     loop {
         tokio::select! {
             _ = ticker.tick() => {
                 let (memory_usage, memory_total) = sample_memory();
-                let _ = write_frame(&mut writer, &WireMsg::Ping).await;
-                if write_frame(&mut writer, &WireMsg::Status {
-                    cpu_usage: 0.0,
+                let (multiplex_capable, multiplex_port) = agent.mux_info().await;
+                let _ = enc_w.write_frame(writer, &WireMsg::Ping).await;
+                if enc_w.write_frame(writer, &WireMsg::Status {
+                    cpu_usage: cpu.sample(),
                     memory_usage,
                     memory_total,
                     ip: String::new(),
                     hostname: hostname.into(),
+                    multiplex_capable,
+                    multiplex_port,
                 }).await.is_err() {
                     anyhow::bail!("[agent] Heartbeat send failed");
                 }
             }
-            msg = read_frame(&mut reader) => {
+            msg = enc_r.read_frame(reader) => {
                 let msg = msg?;
                 match msg {
                     WireMsg::Ping => {
-                        write_frame(&mut writer, &WireMsg::Pong).await?;
+                        enc_w.write_frame(writer, &WireMsg::Pong).await?;
                     }
                     WireMsg::Pong => {}
                     WireMsg::Command { req_id, command, instance_id, config, note } => {
                         tracing::info!("[agent] Received command: {command}");
                         let (success, message, data) = handle_cmd(agent, &command, instance_id, config, note).await;
-                        write_frame(&mut writer, &WireMsg::Response { req_id, success, message, data }).await?;
+                        enc_w.write_frame(writer, &WireMsg::Response { req_id, success, message, data }).await?;
                     }
                     _ => tracing::warn!("[agent] Unknown message type"),
                 }
             }
         }
+    }
+}
+
+#[derive(Default)]
+struct CpuSampler {
+    prev_idle: u64,
+    prev_total: u64,
+}
+
+impl CpuSampler {
+    fn sample(&mut self) -> f32 {
+        let Ok(s) = std::fs::read_to_string("/proc/stat") else {
+            return 0.0;
+        };
+        let Some(line) = s.lines().next() else {
+            return 0.0;
+        };
+        let mut nums = line.split_whitespace().skip(1).filter_map(|x| x.parse::<u64>().ok());
+        let user = nums.next().unwrap_or(0);
+        let nice = nums.next().unwrap_or(0);
+        let system = nums.next().unwrap_or(0);
+        let idle = nums.next().unwrap_or(0);
+        let iowait = nums.next().unwrap_or(0);
+        let irq = nums.next().unwrap_or(0);
+        let softirq = nums.next().unwrap_or(0);
+        let steal = nums.next().unwrap_or(0);
+        let idle_all = idle + iowait;
+        let total = user + nice + system + idle_all + irq + softirq + steal;
+        let d_idle = idle_all.saturating_sub(self.prev_idle);
+        let d_total = total.saturating_sub(self.prev_total);
+        self.prev_idle = idle_all;
+        self.prev_total = total;
+        if d_total == 0 {
+            return 0.0;
+        }
+        ((d_total - d_idle) as f32 / d_total as f32) * 100.0
     }
 }
 

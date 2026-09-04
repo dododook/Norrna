@@ -1,20 +1,25 @@
 use anyhow::Result;
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
 use norrna_proto::InstanceConfig;
 
-/// Official zhboner/realm used as the TCP/UDP forwarding kernel.
-pub struct RealmEngine {
-    binary: Option<PathBuf>,
+struct RealmChild {
+    child: Child,
     config_path: PathBuf,
     pid_path: PathBuf,
-    child: Mutex<Option<Child>>,
-    wanted: AtomicBool,
+}
+
+/// Official zhboner/realm used as the TCP/UDP forwarding kernel.
+/// One process per instance so start/stop of one forward does not bounce the others.
+pub struct RealmEngine {
+    binary: Option<PathBuf>,
+    run_dir: PathBuf,
+    children: Mutex<HashMap<String, RealmChild>>,
 }
 
 impl RealmEngine {
@@ -27,12 +32,12 @@ impl RealmEngine {
                 data_dir.display()
             ),
         }
+        let run_dir = data_dir.join("realm-run");
+        let _ = std::fs::create_dir_all(&run_dir);
         Self {
             binary,
-            config_path: data_dir.join("realm-runtime.json"),
-            pid_path: data_dir.join("realm.pid"),
-            child: Mutex::new(None),
-            wanted: AtomicBool::new(false),
+            run_dir,
+            children: Mutex::new(HashMap::new()),
         }
     }
 
@@ -40,78 +45,36 @@ impl RealmEngine {
         self.binary.as_deref()
     }
 
-    pub async fn sync(&self, endpoints: &[Value], global: &Value) -> Result<()> {
-        if endpoints.is_empty() {
-            self.wanted.store(false, Ordering::SeqCst);
-            self.stop_child().await;
-            let _ = tokio::fs::remove_file(&self.config_path).await;
-            return Ok(());
-        }
+    pub async fn start_one(&self, id: &str, cfg: &InstanceConfig, global: &Value) -> Result<()> {
+        self.stop_one(id).await;
         let Some(bin) = self.binary.clone() else {
             anyhow::bail!(
                 "official realm binary not found. Place `realm` in the agent directory or PATH. Download: https://github.com/zhboner/realm/releases/tag/v2.9.6"
             );
         };
-
-        let mut cfg = global.clone();
-        if !cfg.is_object() {
-            cfg = json!({});
+        let mut doc = global.clone();
+        if !doc.is_object() {
+            doc = json!({});
         }
-        if cfg.get("log").is_none() {
-            cfg["log"] = json!({ "level": "info", "output": "stdout" });
+        if doc.get("log").is_none() {
+            doc["log"] = json!({ "level": "info", "output": "stdout" });
         }
-        cfg["endpoints"] = Value::Array(endpoints.to_vec());
-
-        let body = serde_json::to_vec_pretty(&cfg)?;
-        let tmp = self.config_path.with_extension("json.tmp");
-        tokio::fs::write(&tmp, &body).await?;
-        tokio::fs::rename(&tmp, &self.config_path).await?;
-        tracing::info!(
-            "[realm] wrote {} endpoint(s) -> {}",
-            endpoints.len(),
-            self.config_path.display()
-        );
-
-        self.wanted.store(true, Ordering::SeqCst);
-        self.restart(&bin).await
-    }
-
-    pub async fn respawn_if_dead(&self) {
-        if !self.wanted.load(Ordering::SeqCst) {
-            return;
-        }
-        let Some(bin) = self.binary.clone() else {
-            return;
-        };
-        let mut g = self.child.lock().await;
-        let dead = match g.as_mut() {
-            Some(c) => matches!(c.try_wait(), Ok(Some(_))),
-            None => true,
-        };
-        if !dead {
-            return;
-        }
-        tracing::warn!("[realm] process exited unexpectedly, restarting");
-        *g = None;
-        drop(g);
-        if let Err(e) = self.restart(&bin).await {
-            tracing::error!("[realm] restart failed: {e}");
-        }
-    }
-
-    async fn restart(&self, bin: &Path) -> Result<()> {
-        self.stop_child().await;
-        self.kill_stale_pid().await;
+        doc["endpoints"] = json!([endpoint_from(cfg)]);
+        let config_path = self.run_dir.join(format!("{id}.json"));
+        let pid_path = self.run_dir.join(format!("{id}.pid"));
+        let tmp = config_path.with_extension("json.tmp");
+        tokio::fs::write(&tmp, serde_json::to_vec_pretty(&doc)?).await?;
+        tokio::fs::rename(&tmp, &config_path).await?;
+        kill_stale_file(&pid_path).await;
         #[cfg(unix)]
         {
-            let needle = self.config_path.to_string_lossy().into_owned();
+            let needle = config_path.to_string_lossy().into_owned();
             let _ = Command::new("pkill").args(["-f", &needle]).status().await;
-            tokio::time::sleep(Duration::from_millis(200)).await;
+            tokio::time::sleep(Duration::from_millis(150)).await;
         }
-
-        let mut cmd = Command::new(bin);
+        let mut cmd = Command::new(&bin);
         cmd.arg("-c")
-            .arg(&self.config_path)
+            .arg(&config_path)
             .kill_on_drop(true)
             .stdin(Stdio::null())
             .stdout(Stdio::inherit())
@@ -120,46 +83,94 @@ impl RealmEngine {
             .spawn()
             .map_err(|e| anyhow::anyhow!("failed to spawn realm ({}): {e}", bin.display()))?;
         if let Some(pid) = child.id() {
-            let _ = tokio::fs::write(&self.pid_path, pid.to_string()).await;
-            tracing::info!("[realm] started pid={pid} -c {}", self.config_path.display());
+            let _ = tokio::fs::write(&pid_path, pid.to_string()).await;
+            tracing::info!("[realm] {id} started pid={pid} -c {}", config_path.display());
         }
-        {
-            let mut g = self.child.lock().await;
-            *g = Some(child);
-        }
-
-        tokio::time::sleep(Duration::from_millis(400)).await;
-        let mut g = self.child.lock().await;
-        if let Some(c) = g.as_mut() {
-            if let Ok(Some(status)) = c.try_wait() {
-                *g = None;
+        self.children.lock().await.insert(
+            id.to_string(),
+            RealmChild {
+                child,
+                config_path,
+                pid_path,
+            },
+        );
+        tokio::time::sleep(Duration::from_millis(350)).await;
+        let mut g = self.children.lock().await;
+        if let Some(c) = g.get_mut(id) {
+            if let Ok(Some(status)) = c.child.try_wait() {
+                g.remove(id);
                 anyhow::bail!("realm exited immediately ({status}). Check listen addresses and that ports are free.");
             }
         }
         Ok(())
     }
 
-    async fn stop_child(&self) {
-        let mut g = self.child.lock().await;
-        if let Some(mut c) = g.take() {
-            let _ = c.kill().await;
-            let _ = c.wait().await;
+    pub async fn stop_one(&self, id: &str) {
+        if let Some(mut c) = self.children.lock().await.remove(id) {
+            let _ = c.child.kill().await;
+            let _ = c.child.wait().await;
+            let _ = tokio::fs::remove_file(&c.pid_path).await;
+            let _ = tokio::fs::remove_file(&c.config_path).await;
         }
-        let _ = tokio::fs::remove_file(&self.pid_path).await;
     }
 
-    async fn kill_stale_pid(&self) {
-        let Ok(s) = tokio::fs::read_to_string(&self.pid_path).await else {
+    pub async fn respawn_if_dead(&self) {
+        let Some(bin) = self.binary.clone() else {
             return;
         };
-        let Ok(pid) = s.trim().parse::<u32>() else {
-            return;
-        };
-        tracing::info!("[realm] killing stale pid {pid}");
-        kill_pid(pid);
-        tokio::time::sleep(Duration::from_millis(200)).await;
-        let _ = tokio::fs::remove_file(&self.pid_path).await;
+        let mut g = self.children.lock().await;
+        let mut dead = Vec::new();
+        for (id, c) in g.iter_mut() {
+            if matches!(c.child.try_wait(), Ok(Some(_))) {
+                dead.push(id.clone());
+            }
+        }
+        for id in dead {
+            tracing::warn!("[realm] {id} exited unexpectedly, restarting");
+            let Some(old) = g.remove(&id) else {
+                continue;
+            };
+            if !old.config_path.is_file() {
+                continue;
+            }
+            let mut cmd = Command::new(&bin);
+            cmd.arg("-c")
+                .arg(&old.config_path)
+                .kill_on_drop(true)
+                .stdin(Stdio::null())
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit());
+            match cmd.spawn() {
+                Ok(child) => {
+                    if let Some(pid) = child.id() {
+                        let _ = std::fs::write(&old.pid_path, pid.to_string());
+                    }
+                    g.insert(
+                        id,
+                        RealmChild {
+                            child,
+                            config_path: old.config_path,
+                            pid_path: old.pid_path,
+                        },
+                    );
+                }
+                Err(e) => tracing::error!("[realm] restart {id} failed: {e}"),
+            }
+        }
     }
+}
+
+async fn kill_stale_file(pid_path: &Path) {
+    let Ok(s) = tokio::fs::read_to_string(pid_path).await else {
+        return;
+    };
+    let Ok(pid) = s.trim().parse::<u32>() else {
+        return;
+    };
+    tracing::info!("[realm] killing stale pid {pid}");
+    kill_pid(pid);
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    let _ = tokio::fs::remove_file(pid_path).await;
 }
 
 pub fn endpoint_from(cfg: &InstanceConfig) -> Value {
@@ -230,7 +241,7 @@ pub fn to_realm_addr(s: &str) -> String {
     s.to_string()
 }
 
-fn find_realm(data_dir: &Path) -> Option<PathBuf> {
+pub fn find_realm(data_dir: &Path) -> Option<PathBuf> {
     if let Ok(p) = std::env::var("NORRNA_REALM") {
         let p = PathBuf::from(p);
         if p.is_file() {

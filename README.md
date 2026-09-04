@@ -74,11 +74,15 @@ Agent 安装到 `/etc/norrna`：
 
 | multiplex_mode | 内核 | 含义 |
 |---|---|---|
-| 0 | 官方 Realm | 普通转发 listen ↔ remote（含 UDP、PROXY、WS/TLS 等 Realm 能力，配置写进 `network`） |
-| 1 | Norrna overlay | 服务端，入站 `NORRNAMX` 头转到最终目标 |
-| 2 | Norrna overlay | 客户端，连到复用口并带上 `final_target` |
+| 0 | 官方 Realm（每条转发独立进程） | 普通转发 listen ↔ remote |
+| 1 | overlay | 服务端：MySQL 握手伪装（`5.7.44-realm`），路由到客户端指定目标 |
+| 2 | overlay | 客户端：连复用口并带上 `final_target` |
 
-UDP 复用魔数：`NORRNAUDP`。官方 Realm 没有 Zelay 那套端口复用协议，所以 1/2 仍由 Agent 自己转。
+UDP 复用魔数：`ZELAY_UDP`（兼容旧的 `NORRNAUDP`）。
+
+控制通道使用 ChaCha20-Poly1305（与原版同一把内置 PSK），带序号防重放。
+
+被动模式：`norrna api --port 9000 --key KEY`，面板「服务器」里填写该地址后点连接。
 
 可执行文件查找顺序：`NORRNA_REALM` → `/etc/norrna/realm` → 与 `norrna` 同目录 → `PATH`。
 

@@ -47,7 +47,18 @@ async fn run_endpoint(cfg: InstanceConfig, listen: SocketAddr) -> Result<()> {
 
 async fn run_tcp(cfg: InstanceConfig, listen: SocketAddr) -> Result<()> {
     let listener = TcpListener::bind(listen).await?;
-    tracing::info!("[tcp] listening on {listen} multiplex={}", cfg.multiplex_mode);
+    let mux = match cfg.multiplex_mode {
+        1 => format!(
+            " (multiplex server, user: {})",
+            cfg.owner_user_id.as_deref().unwrap_or("?")
+        ),
+        2 => format!(
+            " (multiplex client, user: {})",
+            cfg.owner_user_id.as_deref().unwrap_or("?")
+        ),
+        _ => " (normal mode)".into(),
+    };
+    tracing::info!("[tcp] listening on {listen}{mux}");
     loop {
         let (mut inbound, peer) = listener.accept().await?;
         let cfg = cfg.clone();
@@ -67,7 +78,9 @@ async fn handle_tcp(cfg: &InstanceConfig, inbound: &mut TcpStream, _peer: Socket
             let mut peek = vec![0u8; 4096];
             let n = tokio::time::timeout(Duration::from_secs(3), inbound.read(&mut peek)).await??;
             peek.truncate(n);
+            tracing::debug!("[tcp]peek initial {n} bytes");
             if let Some((owner, target, used)) = decode_mux_header(&peek) {
+                tracing::info!("[tcp-mux-server] (user: {owner}) -> {target}");
                 if let Some(expect) = &cfg.owner_user_id {
                     if expect != &owner {
                         anyhow::bail!("owner mismatch");

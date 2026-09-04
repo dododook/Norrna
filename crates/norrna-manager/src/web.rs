@@ -42,6 +42,32 @@ pub fn router(state: AppState) -> Router {
         .route("/api/servers", get(list_servers).post(create_server))
         .route("/api/servers/:id", axum::routing::delete(delete_server))
         .route("/api/servers/:id/connect", post(connect_server))
+        .route(
+            "/api/servers/:id/instances",
+            get(list_server_instances).post(create_server_instance),
+        )
+        .route(
+            "/api/servers/:server_id/instances/:instance_id",
+            axum::routing::put(update_server_instance).delete(delete_server_instance),
+        )
+        .route(
+            "/api/servers/:server_id/instances/:instance_id/start",
+            post(start_server_instance),
+        )
+        .route(
+            "/api/servers/:server_id/instances/:instance_id/stop",
+            post(stop_server_instance),
+        )
+        .route(
+            "/api/servers/:server_id/instances/:instance_id/restart",
+            post(restart_server_instance),
+        )
+        .route(
+            "/api/servers/:server_id/instances/:instance_id/note",
+            post(update_server_note),
+        )
+        .route("/api/agents/multiplex-capable", get(list_mux_agents))
+        .route("/api/agents/:id/multiplex", post(set_agent_mux))
         .route("/api/agents", get(list_agents).post(create_agent))
         .route(
             "/api/agents/:id",
@@ -615,10 +641,23 @@ async fn update_note(
 }
 
 async fn list_servers(State(st): State<AppState>, headers: HeaderMap) -> Response {
-    if let Err(r) = require_user(&st, &headers).await {
-        return r;
+    let user = match require_user(&st, &headers).await {
+        Ok(u) => u,
+        Err(r) => return r,
+    };
+    let mut servers = st.storage.servers().await;
+    for s in &mut servers {
+        s.status = if st.hub.is_online(&s.id).await {
+            "connected".into()
+        } else {
+            "disconnected".into()
+        };
     }
-    Json(ApiResponse::ok(st.storage.servers().await)).into_response()
+    let visible: Vec<_> = servers
+        .into_iter()
+        .filter(|s| s.user_id == user.id || user.role == "Admin")
+        .collect();
+    Json(ApiResponse::ok(visible)).into_response()
 }
 
 async fn create_server(
@@ -670,11 +709,208 @@ async fn connect_server(
     if let Err(r) = require_user(&st, &headers).await {
         return r;
     }
-    let mut servers = st.storage.servers().await;
-    if let Some(s) = servers.iter_mut().find(|s| s.id == id) {
-        s.status = "connected".into();
-        let _ = st.storage.save_servers(servers).await;
-        return Json(ApiResponse::<()>::msg(true, "Connected successfully")).into_response();
+    let servers = st.storage.servers().await;
+    let Some(s) = servers.iter().find(|s| s.id == id).cloned() else {
+        return Json(ApiResponse::<()>::msg(false, "Server not found")).into_response();
+    };
+    match st
+        .hub
+        .connect_passive(&s.id, &s.host, s.port, &s.api_key)
+        .await
+    {
+        Ok(()) => {
+            let mut servers = st.storage.servers().await;
+            if let Some(x) = servers.iter_mut().find(|x| x.id == id) {
+                x.status = "connected".into();
+                let _ = st.storage.save_servers(servers).await;
+            }
+            Json(ApiResponse::<()>::msg(true, "Connected successfully")).into_response()
+        }
+        Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
     }
-    Json(ApiResponse::<()>::msg(false, "Server not found")).into_response()
+}
+
+async fn list_server_instances(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    match st.hub.command(&id, "list_instances", None, None, None).await {
+        Ok(m) => unwrap_response(m),
+        Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
+    }
+}
+
+async fn create_server_instance(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(req): Json<CreateAgentInstanceRequest>,
+) -> Response {
+    let user = match require_user(&st, &headers).await {
+        Ok(u) => u,
+        Err(r) => return r,
+    };
+    let mut cfg = req.config;
+    if cfg.multiplex_mode != 0 && cfg.owner_user_id.is_none() {
+        cfg.owner_user_id = Some(user.id);
+    }
+    match st
+        .hub
+        .command(&id, "create_instance", None, Some(cfg), req.note)
+        .await
+    {
+        Ok(m) => unwrap_response(m),
+        Err(e) => Json(ApiResponse::<()>::msg(false, format!("Failed to create instance: {e}")))
+            .into_response(),
+    }
+}
+
+async fn update_server_instance(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path((server_id, instance_id)): Path<(String, String)>,
+    Json(req): Json<CreateAgentInstanceRequest>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    match st
+        .hub
+        .command(
+            &server_id,
+            "update_instance",
+            Some(instance_id),
+            Some(req.config),
+            req.note,
+        )
+        .await
+    {
+        Ok(m) => unwrap_response(m),
+        Err(e) => Json(ApiResponse::<()>::msg(false, format!("Failed to update instance: {e}")))
+            .into_response(),
+    }
+}
+
+async fn delete_server_instance(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path((server_id, instance_id)): Path<(String, String)>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    match st
+        .hub
+        .command(&server_id, "delete_instance", Some(instance_id), None, None)
+        .await
+    {
+        Ok(m) => unwrap_response(m),
+        Err(e) => Json(ApiResponse::<()>::msg(false, format!("Failed to delete instance: {e}")))
+            .into_response(),
+    }
+}
+
+async fn start_server_instance(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path((server_id, instance_id)): Path<(String, String)>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    inst_cmd(&st, &server_id, instance_id, "start_instance").await
+}
+
+async fn stop_server_instance(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path((server_id, instance_id)): Path<(String, String)>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    inst_cmd(&st, &server_id, instance_id, "stop_instance").await
+}
+
+async fn restart_server_instance(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path((server_id, instance_id)): Path<(String, String)>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    inst_cmd(&st, &server_id, instance_id, "restart_instance").await
+}
+
+async fn update_server_note(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path((server_id, instance_id)): Path<(String, String)>,
+    Json(body): Json<serde_json::Value>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    let note = body
+        .get("note")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    match st
+        .hub
+        .command(&server_id, "update_note", Some(instance_id), None, note)
+        .await
+    {
+        Ok(m) => unwrap_response(m),
+        Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
+    }
+}
+
+async fn list_mux_agents(State(st): State<AppState>, headers: HeaderMap) -> Response {
+    let user = match require_user(&st, &headers).await {
+        Ok(u) => u,
+        Err(r) => return r,
+    };
+    let agents = st.storage.agents().await;
+    let list: Vec<_> = agents
+        .iter()
+        .filter(|a| a.multiplex_capable && (a.user_id == user.id || user.role == "Admin"))
+        .map(public_agent)
+        .collect();
+    Json(ApiResponse::ok(list)).into_response()
+}
+
+async fn set_agent_mux(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(body): Json<serde_json::Value>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    let capable = body
+        .get("multiplex_capable")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    let port = body
+        .get("multiplex_port")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0) as u16;
+    match st
+        .storage
+        .update_agent(&id, |a| {
+            a.multiplex_capable = capable;
+            a.multiplex_port = port;
+        })
+        .await
+    {
+        Ok(Some(_)) => Json(ApiResponse::<()>::msg(true, "Agent multiplex capability updated")).into_response(),
+        Ok(None) => Json(ApiResponse::<()>::msg(false, "Agent not found")).into_response(),
+        Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
+    }
 }

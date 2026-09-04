@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::io::{BufReader, BufWriter};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, oneshot, Mutex};
-use norrna_proto::{read_frame, write_frame, InstanceConfig, WireMsg};
+use norrna_proto::{split_crypto, EncReader, EncWriter, InstanceConfig, WireMsg};
 
 #[derive(Clone)]
 pub struct AgentHub {
@@ -34,20 +34,21 @@ impl AgentHub {
             let (stream, peer) = listener.accept().await?;
             let hub = self.clone();
             tokio::spawn(async move {
-                if let Err(e) = hub.handle(stream, peer).await {
+                if let Err(e) = hub.handle_inbound(stream, peer).await {
                     tracing::warn!("Agent TCP server error: {e}");
                 }
             });
         }
     }
 
-    async fn handle(&self, stream: TcpStream, peer: std::net::SocketAddr) -> Result<()> {
+    async fn handle_inbound(&self, stream: TcpStream, peer: std::net::SocketAddr) -> Result<()> {
         let _ = stream.set_nodelay(true);
         let (r, w) = stream.into_split();
         let mut reader = BufReader::new(r);
         let mut writer = BufWriter::new(w);
+        let (mut enc_r, mut enc_w) = split_crypto();
 
-        let first = tokio::time::timeout(std::time::Duration::from_secs(30), read_frame(&mut reader))
+        let first = tokio::time::timeout(std::time::Duration::from_secs(30), enc_r.read_frame(&mut reader))
             .await
             .map_err(|_| anyhow::anyhow!("Auth receive timeout"))??;
 
@@ -58,25 +59,27 @@ impl AgentHub {
             _ => anyhow::bail!("Invalid API key"),
         };
         if api_key.is_empty() {
-            let _ = write_frame(
-                &mut writer,
-                &WireMsg::AuthFail {
-                    message: "Missing api_key".into(),
-                },
-            )
-            .await;
+            let _ = enc_w
+                .write_frame(
+                    &mut writer,
+                    &WireMsg::AuthFail {
+                        message: "Missing api_key".into(),
+                    },
+                )
+                .await;
             anyhow::bail!("Missing api_key");
         }
 
         let agents = self.storage.agents().await;
         let Some(agent) = agents.into_iter().find(|a| a.api_key == api_key) else {
-            let _ = write_frame(
-                &mut writer,
-                &WireMsg::AuthFail {
-                    message: "Invalid API key".into(),
-                },
-            )
-            .await;
+            let _ = enc_w
+                .write_frame(
+                    &mut writer,
+                    &WireMsg::AuthFail {
+                        message: "Invalid API key".into(),
+                    },
+                )
+                .await;
             anyhow::bail!("Invalid API key");
         };
         let agent_id = agent.id.clone();
@@ -92,32 +95,98 @@ impl AgentHub {
             })
             .await?;
 
-        write_frame(
-            &mut writer,
-            &WireMsg::AuthSuccess {
-                agent_id: agent_id.clone(),
-                message: "Authentication successful".into(),
-            },
-        )
-        .await?;
+        enc_w
+            .write_frame(
+                &mut writer,
+                &WireMsg::AuthSuccess {
+                    agent_id: agent_id.clone(),
+                    message: "Authentication successful".into(),
+                },
+            )
+            .await?;
 
+        self.pump(agent_id, reader, writer, enc_r, enc_w, true).await
+    }
+
+    pub async fn connect_passive(
+        &self,
+        server_id: &str,
+        host: &str,
+        port: u16,
+        api_key: &str,
+    ) -> Result<()> {
+        let addr = format!("{host}:{port}");
+        tracing::info!("connecting to passive agent {addr}");
+        let stream = tokio::time::timeout(std::time::Duration::from_secs(15), TcpStream::connect(&addr))
+            .await
+            .map_err(|_| anyhow::anyhow!("Connection timeout"))??;
+        let _ = stream.set_nodelay(true);
+        let (r, w) = stream.into_split();
+        let mut reader = BufReader::new(r);
+        let mut writer = BufWriter::new(w);
+        let (mut enc_r, mut enc_w) = split_crypto();
+        enc_w
+            .write_frame(
+                &mut writer,
+                &WireMsg::Auth {
+                    api_key: api_key.into(),
+                    hostname: String::new(),
+                    name: "norrna-manager".into(),
+                },
+            )
+            .await?;
+        let resp = tokio::time::timeout(std::time::Duration::from_secs(15), enc_r.read_frame(&mut reader))
+            .await
+            .map_err(|_| anyhow::anyhow!("Auth response timeout"))??;
+        match resp {
+            WireMsg::AuthSuccess { .. } => {}
+            WireMsg::AuthFail { message } => anyhow::bail!("Authentication failed: {message}"),
+            other => anyhow::bail!("Unexpected auth response: {other:?}"),
+        }
+        let hub = self.clone();
+        let sid = server_id.to_string();
+        tokio::spawn(async move {
+            if let Err(e) = hub.pump(sid, reader, writer, enc_r, enc_w, false).await {
+                tracing::warn!("passive agent connection ended: {e}");
+            }
+        });
+        for _ in 0..50 {
+            if self.is_online(server_id).await {
+                return Ok(());
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+        anyhow::bail!("connected but session did not come online")
+    }
+
+    async fn pump(
+        &self,
+        id: String,
+        mut reader: BufReader<tokio::net::tcp::OwnedReadHalf>,
+        mut writer: BufWriter<tokio::net::tcp::OwnedWriteHalf>,
+        mut enc_r: EncReader,
+        mut enc_w: EncWriter,
+        is_agent: bool,
+    ) -> Result<()> {
         let (tx, mut rx) = mpsc::channel::<WireMsg>(128);
-        self.tx_map.lock().await.insert(agent_id.clone(), tx);
+        self.tx_map.lock().await.insert(id.clone(), tx);
 
         let pending = self.pending.clone();
         let storage = self.storage.clone();
-        let aid = agent_id.clone();
+        let aid = id.clone();
         let read_task = tokio::spawn(async move {
             loop {
-                match read_frame(&mut reader).await {
+                match enc_r.read_frame(&mut reader).await {
                     Ok(WireMsg::Pong | WireMsg::Ping) => {
                         let now = chrono::Utc::now().to_rfc3339();
-                        let _ = storage
-                            .update_agent(&aid, |a| {
-                                a.last_seen = now;
-                                a.status = "online".into();
-                            })
-                            .await;
+                        if is_agent {
+                            let _ = storage
+                                .update_agent(&aid, |a| {
+                                    a.last_seen = now;
+                                    a.status = "online".into();
+                                })
+                                .await;
+                        }
                     }
                     Ok(WireMsg::Status {
                         cpu_usage,
@@ -125,23 +194,31 @@ impl AgentHub {
                         memory_total,
                         ip,
                         hostname,
+                        multiplex_capable,
+                        multiplex_port,
                     }) => {
                         let now = chrono::Utc::now().to_rfc3339();
-                        let _ = storage
-                            .update_agent(&aid, |a| {
-                                a.cpu_usage = cpu_usage;
-                                a.memory_usage = memory_usage;
-                                a.memory_total = memory_total;
-                                if !ip.is_empty() {
-                                    a.ip = ip;
-                                }
-                                if !hostname.is_empty() {
-                                    a.hostname = hostname;
-                                }
-                                a.last_seen = now;
-                                a.status = "online".into();
-                            })
-                            .await;
+                        if is_agent {
+                            let _ = storage
+                                .update_agent(&aid, |a| {
+                                    a.cpu_usage = cpu_usage;
+                                    a.memory_usage = memory_usage;
+                                    a.memory_total = memory_total;
+                                    a.multiplex_capable = multiplex_capable;
+                                    if multiplex_port != 0 {
+                                        a.multiplex_port = multiplex_port;
+                                    }
+                                    if !ip.is_empty() {
+                                        a.ip = ip;
+                                    }
+                                    if !hostname.is_empty() {
+                                        a.hostname = hostname;
+                                    }
+                                    a.last_seen = now;
+                                    a.status = "online".into();
+                                })
+                                .await;
+                        }
                     }
                     Ok(msg @ WireMsg::Response { .. }) => {
                         if let WireMsg::Response { req_id, .. } = &msg {
@@ -158,22 +235,30 @@ impl AgentHub {
 
         let write_task = tokio::spawn(async move {
             while let Some(msg) = rx.recv().await {
-                if write_frame(&mut writer, &msg).await.is_err() {
+                if enc_w.write_frame(&mut writer, &msg).await.is_err() {
                     break;
                 }
             }
         });
 
         let _ = read_task.await;
-        self.tx_map.lock().await.remove(&agent_id);
-        let now = chrono::Utc::now().to_rfc3339();
-        let _ = self
-            .storage
-            .update_agent(&agent_id, |a| {
-                a.status = "offline".into();
-                a.last_seen = now;
-            })
-            .await;
+        self.tx_map.lock().await.remove(&id);
+        if is_agent {
+            let now = chrono::Utc::now().to_rfc3339();
+            let _ = self
+                .storage
+                .update_agent(&id, |a| {
+                    a.status = "offline".into();
+                    a.last_seen = now;
+                })
+                .await;
+        } else {
+            let mut servers = self.storage.servers().await;
+            if let Some(s) = servers.iter_mut().find(|s| s.id == id) {
+                s.status = "disconnected".into();
+                let _ = self.storage.save_servers(servers).await;
+            }
+        }
         write_task.abort();
         Ok(())
     }

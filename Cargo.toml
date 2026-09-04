@@ -8,7 +8,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
-version = "26.1.14"
+version = "26.1.15"
 license = "MIT"
 authors = ["Norrna"]
 
@@ -23,3 +23,5 @@ clap = { version = "4.5", features = ["derive", "env"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "2"
+chacha20poly1305 = "0.10"
+base64 = "0.22"

@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug)]
-#[command(name = "norrna", version = "26.1.14", about = "Norrna agent (Realm kernel)")]
+#[command(name = "norrna", version = "26.1.15", about = "Norrna agent (Realm kernel)")]
 struct Cli {
     #[command(subcommand)]
     cmd: Commands,
@@ -46,6 +46,11 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     match cli.cmd {
         Commands::Convert => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            if let Some(bin) = crate::realm::find_realm(&cwd) {
+                let st = std::process::Command::new(bin).arg("convert").status()?;
+                std::process::exit(st.code().unwrap_or(1));
+            }
             anyhow::bail!("attention: you are using a legacy config file!");
         }
         Commands::Api {
@@ -55,7 +60,11 @@ async fn main() -> anyhow::Result<()> {
             key,
             name,
         } => {
-            let key = key.ok_or_else(|| anyhow::anyhow!("Error: API key is required"))?;
+            let key = key
+                .or_else(|| std::env::var("REALM_API_KEY").ok())
+                .ok_or_else(|| {
+                    anyhow::anyhow!("Error: API key is required\nProvide it via --key argument or NORRNA_API_KEY / REALM_API_KEY environment variable")
+                })?;
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             let data = config
                 .as_ref()
@@ -63,8 +72,8 @@ async fn main() -> anyhow::Result<()> {
                 .unwrap_or(cwd);
             if let Some(server) = server {
                 agent::run_agent(&server, &key, name, data, config).await?;
-            } else if port.is_some() {
-                anyhow::bail!("passive API server mode is not used by Norrna-Manager; use --server");
+            } else if let Some(port) = port {
+                agent::run_passive(port, &key, name, data, config).await?;
             } else {
                 anyhow::bail!("Error: Either --port or --server must be specified\nExamples:\n  Server mode: norrna api --port 9000 --key mykey\n  Agent mode:  norrna api --server 127.0.0.1:3001 --key mykey --name myagent");
             }

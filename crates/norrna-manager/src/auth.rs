@@ -33,11 +33,11 @@ pub fn parse_token(token: &str) -> Option<Claims> {
 }
 
 pub fn cookie_header(token: &str) -> String {
-    format!("token={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400")
+    format!("token={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400")
 }
 
 pub fn clear_cookie() -> String {
-    "token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0".into()
+    "token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0".into()
 }
 
 pub fn token_from_cookie(header: Option<&str>) -> Option<String> {
