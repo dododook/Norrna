@@ -1,6 +1,8 @@
 use crate::{ProtoError, WireMsg, MAX_FRAME};
 use chacha20poly1305::aead::{Aead, KeyInit};
 use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 /// Shared PSK baked into original Zelay agent + manager (32-byte ChaCha20 key, base64).
@@ -24,23 +26,28 @@ fn load_cipher() -> Cipher {
 pub struct EncWriter {
     cipher: Cipher,
     send_seq: u64,
+    plain: Arc<AtomicBool>,
 }
 
 pub struct EncReader {
     cipher: Cipher,
     recv_seq: u64,
+    plain: Arc<AtomicBool>,
 }
 
 pub fn split_crypto() -> (EncReader, EncWriter) {
     let c = load_cipher();
+    let plain = Arc::new(AtomicBool::new(false));
     (
         EncReader {
             cipher: c.clone(),
             recv_seq: 0,
+            plain: plain.clone(),
         },
         EncWriter {
             cipher: c,
             send_seq: 0,
+            plain,
         },
     )
 }
@@ -60,6 +67,12 @@ impl EncWriter {
         let plain = serde_json::to_vec(msg)?;
         if plain.len() > MAX_FRAME {
             return Err(ProtoError::TooLarge);
+        }
+        if self.plain.load(Ordering::SeqCst) {
+            w.write_u32(plain.len() as u32).await?;
+            w.write_all(&plain).await?;
+            w.flush().await?;
+            return Ok(());
         }
         self.send_seq = self.send_seq.wrapping_add(1);
         let nb = nonce_from_seq(self.send_seq);
@@ -91,24 +104,34 @@ impl EncReader {
         if len as usize > MAX_FRAME {
             return Err(ProtoError::TooLarge);
         }
-        if (len as usize) < 12 + 16 {
-            return Err(ProtoError::TooShort);
-        }
         let mut buf = vec![0u8; len as usize];
         r.read_exact(&mut buf).await?;
-        let mut nb = [0u8; 12];
-        nb.copy_from_slice(&buf[..12]);
-        let seq = u64::from_le_bytes(nb[..8].try_into().unwrap());
-        if seq <= self.recv_seq {
-            return Err(ProtoError::Replay);
+
+        if self.plain.load(Ordering::SeqCst) {
+            return Ok(serde_json::from_slice(&buf)?);
         }
-        let nonce = Nonce::from_slice(&nb);
-        let plain = self
-            .cipher
-            .0
-            .decrypt(nonce, &buf[12..])
-            .map_err(|_| ProtoError::Decrypt)?;
-        self.recv_seq = seq;
-        Ok(serde_json::from_slice(&plain)?)
+
+        if (len as usize) >= 12 + 16 {
+            let mut nb = [0u8; 12];
+            nb.copy_from_slice(&buf[..12]);
+            let seq = u64::from_le_bytes(nb[..8].try_into().unwrap());
+            if seq > self.recv_seq {
+                let nonce = Nonce::from_slice(&nb);
+                if let Ok(pt) = self.cipher.0.decrypt(nonce, &buf[12..]) {
+                    if let Ok(msg) = serde_json::from_slice::<WireMsg>(&pt) {
+                        self.recv_seq = seq;
+                        self.plain.store(false, Ordering::SeqCst);
+                        return Ok(msg);
+                    }
+                }
+            }
+        }
+
+        if let Ok(msg) = serde_json::from_slice::<WireMsg>(&buf) {
+            self.plain.store(true, Ordering::SeqCst);
+            tracing::warn!("control channel fell back to plaintext (peer is an older norrna)");
+            return Ok(msg);
+        }
+        Err(ProtoError::Decrypt)
     }
 }

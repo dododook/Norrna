@@ -19,6 +19,7 @@ NC='\033[0m'
 # 默认配置
 INSTALL_DIR="/etc/norrna"
 BINARY_URL="https://github.com/dododook/Norrna/releases/latest/download/norrna"
+PANEL_BINARY_URL=""
 REALM_VERSION="v2.9.6"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_NAME="norrna-agent"
@@ -202,20 +203,26 @@ download_binary() {
     
     local dest="$INSTALL_DIR/norrna"
     local ok=0
-    if [[ -n "$BINARY_URL" ]]; then
-        local tmp_file="/tmp/norrna_download"
-        log_info "尝试下载: $BINARY_URL"
-        if command -v wget >/dev/null 2>&1 && wget -q --show-progress -O "$tmp_file" "$BINARY_URL" && [[ -s "$tmp_file" ]]; then
-            ok=1
-        elif command -v curl >/dev/null 2>&1 && curl -fsSL -o "$tmp_file" "$BINARY_URL" && [[ -s "$tmp_file" ]]; then
-            ok=1
+    local tmp_file="/tmp/norrna_download"
+    try_fetch() {
+        local url="$1"
+        [[ -z "$url" ]] && return 1
+        log_info "尝试下载: $url"
+        if command -v wget >/dev/null 2>&1 && wget -q --show-progress -O "$tmp_file" "$url" && [[ -s "$tmp_file" ]]; then
+            return 0
         fi
-        if [[ "$ok" -eq 1 ]]; then
-            mv "$tmp_file" "$dest"
-        else
-            log_warning "GitHub 下载失败（可能还没有 Release），改为使用本地文件"
-            rm -f "$tmp_file"
+        if command -v curl >/dev/null 2>&1 && curl -fsSL -o "$tmp_file" "$url" && [[ -s "$tmp_file" ]]; then
+            return 0
         fi
+        rm -f "$tmp_file"
+        return 1
+    }
+    if try_fetch "$BINARY_URL" || try_fetch "$PANEL_BINARY_URL"; then
+        ok=1
+        mv "$tmp_file" "$dest"
+    else
+        log_warning "下载失败，改为使用本地文件"
+        rm -f "$tmp_file"
     fi
     if [[ "$ok" -eq 0 ]]; then
         local src

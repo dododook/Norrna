@@ -119,8 +119,8 @@ async fn serve_agent_script(headers: HeaderMap) -> Response {
         .unwrap_or("http");
     let url = format!("{proto}://{host}/norrna");
     let body = AGENT_SH.replace(
-        r#"BINARY_URL="https://github.com/dododook/Norrna/releases/latest/download/norrna""#,
-        &format!(r#"BINARY_URL="{url}""#),
+        r#"PANEL_BINARY_URL="""#,
+        &format!(r#"PANEL_BINARY_URL="{url}""#),
     );
     (
         StatusCode::OK,

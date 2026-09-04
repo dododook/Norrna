@@ -35,7 +35,7 @@ impl AgentHub {
             let hub = self.clone();
             tokio::spawn(async move {
                 if let Err(e) = hub.handle_inbound(stream, peer).await {
-                    tracing::warn!("Agent TCP server error: {e}");
+                    tracing::warn!("Agent TCP {peer} error: {e}");
                 }
             });
         }
