@@ -250,9 +250,14 @@ async fn check_auth(State(st): State<AppState>, headers: HeaderMap) -> impl Into
 
 async fn me(State(st): State<AppState>, headers: HeaderMap) -> Response {
     match require_user(&st, &headers).await {
-        Ok(u) => Json(ApiResponse::ok(serde_json::json!({
-            "id": u.id, "username": u.username, "role": u.role
-        })))
+        Ok(u) => Json(serde_json::json!({
+            "success": true,
+            "user": {
+                "id": u.id,
+                "username": u.username,
+                "role": u.role
+            }
+        }))
         .into_response(),
         Err(r) => r,
     }
