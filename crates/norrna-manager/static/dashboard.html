@@ -768,6 +768,76 @@
             transition: all 0.2s;
         }
 
+        .form-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .switch-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: #fafafa;
+        }
+        .switch-row .switch-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        .switch-row .switch-meta strong {
+            font-size: 14px;
+            font-weight: 650;
+            color: var(--text-dark);
+        }
+        .switch-row .switch-meta span {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 400;
+            line-height: 1.4;
+        }
+        .switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .switch .slider {
+            position: absolute;
+            inset: 0;
+            background: #d1d5db;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .switch .slider::before {
+            content: '';
+            position: absolute;
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            top: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+        }
+        .switch input:checked + .slider {
+            background: var(--success);
+        }
+        .switch input:checked + .slider::before {
+            transform: translateX(20px);
+        }
+
         .form-group input:focus,
         .form-group textarea:focus,
         .form-group select:focus {
@@ -1635,9 +1705,15 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                 <button class="close-btn" onclick="closeNotifyModal()">×</button>
             </div>
             <form id="notifyForm" onsubmit="saveNotifySettings(event)">
-                <div class="form-group">
-                    <label>启用通知</label>
-                    <input type="checkbox" id="tgEnabled">
+                <div class="switch-row">
+                    <div class="switch-meta">
+                        <strong>启用 Telegram 通知</strong>
+                        <span>关闭后不会发送任何消息</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="tgEnabled">
+                        <span class="slider"></span>
+                    </label>
                 </div>
                 <div class="form-group">
                     <label>Bot Token</label>
@@ -1647,13 +1723,27 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                 <div class="form-group">
                     <label>Chat ID</label>
                     <input type="text" id="tgChat" placeholder="可以是个人或群组 ID">
-                    <small>找 @userinfobot 或把机器人拉进群后看更新</small>
+                    <small>找 @userinfobot，或把机器人拉进群后看群 ID</small>
                 </div>
-                <div class="form-group">
-                    <label><input type="checkbox" id="tgOffline" checked> Agent 离线通知</label>
+                <div class="switch-row">
+                    <div class="switch-meta">
+                        <strong>Agent 离线</strong>
+                        <span>节点掉线、重新上线时推送</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="tgOffline" checked>
+                        <span class="slider"></span>
+                    </label>
                 </div>
-                <div class="form-group">
-                    <label><input type="checkbox" id="tgQuota" checked> 流量超额通知</label>
+                <div class="switch-row">
+                    <div class="switch-meta">
+                        <strong>流量超额</strong>
+                        <span>本月流量达到 Agent 编辑里填的限额时推送</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="tgQuota" checked>
+                        <span class="slider"></span>
+                    </label>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="testTelegram()">发送测试</button>
@@ -3800,7 +3890,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">Version 26.1.19</p>
+        <p style="color: var(--primary); margin: 0;">26.1.20</p>
     </div>
 </div>
 

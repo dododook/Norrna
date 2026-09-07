@@ -8,6 +8,8 @@
 
 仓库：https://github.com/dododook/Norrna
 
+版本号统一为 **26.1.x**，GitHub Release 标签为 `v26.1.x`（例如 `v26.1.20`）。面板页脚、`--version` 和 Release 是同一套。
+
 ---
 
 ## 快速开始
