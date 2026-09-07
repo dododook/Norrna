@@ -1069,6 +1069,83 @@
         .probe-ms.bad { color: #dc2626; }
         .probe-ms.fail { color: #9ca3af; }
 
+        .probe-cell {
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .probe-cell:hover .probe-ms {
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .row-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+        }
+
+        .btn-more {
+            width: 32px;
+            min-width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #475569;
+            border: 1px solid var(--border-color);
+        }
+        .btn-more:hover,
+        .btn-more.active {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: var(--primary);
+        }
+
+        .instance-table td.col-actions {
+            text-align: right;
+            white-space: nowrap;
+            width: 1%;
+        }
+
+        #inst-pop {
+            position: fixed;
+            z-index: 10000;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 6px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.14);
+            min-width: 168px;
+            display: none;
+        }
+        #inst-pop.active { display: block; }
+        #inst-pop button {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+            text-align: left;
+        }
+        #inst-pop button:hover { background: #f1f5f9; }
+        #inst-pop button.danger { color: var(--danger); }
+        #inst-pop button.danger:hover { background: #fff1f2; }
+        #inst-pop .sep {
+            height: 1px;
+            background: #f3f4f6;
+            margin: 4px 6px;
+        }
+
         /* 广告横幅响应式 */
         .ad-banner {
             width: 100%;
@@ -1846,6 +1923,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
 
     <div id="global-tooltip"></div>
     <div id="agent-pop"></div>
+    <div id="inst-pop"></div>
 
     <div id="toast" class="toast">
         <span class="toast-icon" id="toastIcon"></span>
@@ -2490,6 +2568,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
         }
 
                 function renderAgentInstances(agent, instances) {
+            closeInstanceMenu();
             const container = document.getElementById('instancesContent');
             
             // 🆕 搜索过滤
@@ -2567,19 +2646,17 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                     <table class="instance-table">
                         <thead>
                             <tr>
-                                <th style="width:1%;">标识</th>
-                                <th style="width:15%;">监听地址</th>
-                                <th style="width:22%;">远程地址</th>
-                                <th style="width:18%;">备注</th>
+                                <th>监听地址</th>
+                                <th>远程地址</th>
+                                <th>备注</th>
                                 <th style="width:5%;">状态</th>
-                                <th style="width:10%;">延迟</th>
-                                <th style="width:29%;">操作</th>
+                                <th style="width:8%;" title="点击延迟数字拨测">延迟</th>
+                                <th style="width:1%;text-align:right;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
                 `;
                 
-                const currentAgentId = agent.id;  // 保存当前 Agent ID
                 paginatedInstances.forEach(inst => {
                     const statusClass = inst.status === 'Running' ? 'status-connected' : 'status-disconnected';
                     const noteText = inst.note ? highlightSearchText(escapeHtml(inst.note)) : '<span style="color:#ccc;">未设置</span>';
@@ -2622,7 +2699,6 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                     
                     html += `
                         <tr>
-                            <td><span class="code" style="font-size: 0.5em">${escapeHtml(inst.id.substring(0, 4))}...</span></td>
                             <td>
                                 <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
                                     <span class="code">${listenText}</span>${multiplexBadge ? multiplexBadge : ''}
@@ -2641,18 +2717,19 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                                 </div>
                             </td>
                             <td><span class="status-badge ${statusClass}"></span></td>
-                            <td id="probe-${inst.id}">${renderProbeCell(inst.id)}</td>
-                            <td>
-                                <div style="display:flex;gap:5px;flex-wrap:wrap;">
-                                    <button class="btn btn-secondary btn-sm" onclick="probeAgentInstance('${agent.id}', '${inst.id}')">拨测</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="runUnlockCheck('${agent.id}', '${inst.id}')">落地解锁</button>
-                                    ${inst.status === 'Running' ? 
-                                        `<button class="btn btn-warning btn-sm" onclick="stopAgentInstance('${agent.id}', '${inst.id}')">停止</button>
-                                         <button class="btn btn-secondary btn-sm" onclick="restartAgentInstance('${agent.id}', '${inst.id}')">重启</button>` :
-                                        `<button class="btn btn-success btn-sm" onclick="startAgentInstance('${agent.id}', '${inst.id}')">启动</button>`
-                                    }
-                                    <button class=\"btn btn-secondary btn-sm\" onclick='showEditInstanceModal(Object.assign({agent_id: \"${agent.id}\"}, ${JSON.stringify(inst)}))' >编辑</button>
-                                    <button class="btn btn-danger btn-sm" onclick="deleteAgentInstance('${agent.id}', '${inst.id}')">删除</button>
+                            <td class="probe-cell" id="probe-${inst.id}" onclick="probeAgentInstance('${agent.id}', '${inst.id}')" title="点击拨测">${renderProbeCell(inst.id)}</td>
+                            <td class="col-actions">
+                                <div class="row-actions">
+                                    ${inst.status === 'Running'
+                                        ? `<button class="btn btn-warning btn-sm" onclick="stopAgentInstance('${agent.id}', '${inst.id}')">停止</button>`
+                                        : `<button class="btn btn-success btn-sm" onclick="startAgentInstance('${agent.id}', '${inst.id}')">启动</button>`}
+                                    <button type="button" class="btn btn-more" title="更多" onclick="toggleInstanceMenu(event, '${agent.id}', '${inst.id}')">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                                            <circle cx="5" cy="12" r="2"></circle>
+                                            <circle cx="12" cy="12" r="2"></circle>
+                                            <circle cx="19" cy="12" r="2"></circle>
+                                        </svg>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -3552,7 +3629,7 @@ async function createInstance(e) {
 
         function renderProbeCell(instanceId) {
             const p = probeResults[instanceId];
-            if (!p) return '<span class="probe-ms fail">—</span>';
+            if (!p) return '<span class="probe-ms fail">拨测</span>';
             if (p.pending) return '<span class="probe-ms">测…</span>';
             if (!p.ok) return `<span class="probe-ms fail" title="${escapeHtml(p.target || '')}">超时</span>`;
             const avg = p.avg_ms;
@@ -3596,8 +3673,61 @@ async function createInstance(e) {
             return m ? 'Realm ' + m[1] : String(s).split('[')[0].trim();
         }
 
+        function closeInstanceMenu() {
+            const pop = document.getElementById('inst-pop');
+            if (pop) pop.classList.remove('active');
+            document.querySelectorAll('.btn-more.active').forEach(b => b.classList.remove('active'));
+        }
+
+        function editAgentInstance(agentId, instanceId) {
+            const inst = (lastInstancesData || []).find(x => x.id === instanceId);
+            if (!inst) {
+                showToast('找不到这条转发', 'error');
+                return;
+            }
+            showEditInstanceModal(Object.assign({ agent_id: agentId }, inst));
+        }
+
+        function toggleInstanceMenu(event, agentId, instanceId) {
+            event.stopPropagation();
+            const pop = document.getElementById('inst-pop');
+            if (!pop) return;
+            const key = agentId + ':' + instanceId;
+            const btn = event.currentTarget;
+            if (pop.classList.contains('active') && pop.dataset.key === key) {
+                closeInstanceMenu();
+                return;
+            }
+            const agentPop = document.getElementById('agent-pop');
+            if (agentPop) agentPop.classList.remove('active');
+            document.querySelectorAll('.btn-more.active').forEach(b => b.classList.remove('active'));
+            const inst = (lastInstancesData || []).find(x => x.id === instanceId);
+            const running = inst && inst.status === 'Running';
+            pop.dataset.key = key;
+            pop.innerHTML = `
+                <button type="button" onclick="probeAgentInstance('${agentId}','${instanceId}'); closeInstanceMenu()">拨测</button>
+                <button type="button" onclick="runUnlockCheck('${agentId}','${instanceId}'); closeInstanceMenu()">落地解锁</button>
+                ${running ? `<button type="button" onclick="restartAgentInstance('${agentId}','${instanceId}'); closeInstanceMenu()">重启</button>` : ''}
+                <button type="button" onclick="editAgentInstance('${agentId}','${instanceId}'); closeInstanceMenu()">编辑</button>
+                <div class="sep"></div>
+                <button type="button" class="danger" onclick="deleteAgentInstance('${agentId}','${instanceId}'); closeInstanceMenu()">删除</button>
+            `;
+            pop.classList.add('active');
+            btn.classList.add('active');
+            const rect = btn.getBoundingClientRect();
+            const w = 176;
+            let top = rect.bottom + 6;
+            let left = rect.right - w;
+            if (left < 12) left = 12;
+            if (left + w > window.innerWidth - 12) left = window.innerWidth - w - 12;
+            if (top + 260 > window.innerHeight - 12) top = Math.max(12, rect.top - 6 - 240);
+            pop.style.top = top + 'px';
+            pop.style.left = left + 'px';
+        }
+
         function toggleAgentDetails(event, agentId) {
             event.stopPropagation();
+            closeInstanceMenu();
             const pop = document.getElementById('agent-pop');
             if (pop.classList.contains('active') && pop.dataset.id === agentId) {
                 pop.classList.remove('active');
@@ -3637,10 +3767,14 @@ async function createInstance(e) {
         }
 
         document.addEventListener('click', (e) => {
-            const pop = document.getElementById('agent-pop');
-            if (!pop || !pop.classList.contains('active')) return;
-            if (pop.contains(e.target)) return;
-            pop.classList.remove('active');
+            const agentPop = document.getElementById('agent-pop');
+            if (agentPop && agentPop.classList.contains('active') && !agentPop.contains(e.target)) {
+                agentPop.classList.remove('active');
+            }
+            const instPop = document.getElementById('inst-pop');
+            if (instPop && instPop.classList.contains('active') && !instPop.contains(e.target)) {
+                closeInstanceMenu();
+            }
         });
 
         function formatTraffic(a) {
@@ -4131,7 +4265,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">26.1.25</p>
+        <p style="color: var(--primary); margin: 0;">26.1.26</p>
     </div>
 </div>
 
