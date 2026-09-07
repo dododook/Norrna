@@ -220,6 +220,27 @@ impl Agent {
         Ok(tcp_probe(&target).await)
     }
 
+    pub async fn unlock_proxy_addr(&self, id: &str) -> Result<String> {
+        let inst = self
+            .instances
+            .lock()
+            .await
+            .get(id)
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("Instance not found"))?;
+        let running = self.running.lock().await.contains_key(id);
+        if running {
+            if let Some(port) = listen_port(&inst.config.listen) {
+                return Ok(format!("127.0.0.1:{port}"));
+            }
+        }
+        let remote = inst.config.remote.trim().to_string();
+        if remote.is_empty() || remote == "127.0.0.1:1" {
+            anyhow::bail!("这条转发没有可用的落地地址");
+        }
+        Ok(remote)
+    }
+
     pub async fn delete(&self, id: &str) -> Result<()> {
         if self.running.lock().await.contains_key(id) {
             let _ = self.stop(id).await;
@@ -511,6 +532,14 @@ async fn tcp_probe(target: &str) -> serde_json::Value {
     })
 }
 
+fn listen_port(listen: &str) -> Option<u16> {
+    let s = listen.trim();
+    if let Some(p) = s.rsplit(':').next() {
+        return p.parse().ok();
+    }
+    None
+}
+
 fn sample_traffic() -> (u64, u64) {
     let Ok(s) = std::fs::read_to_string("/proc/net/dev") else {
         return (0, 0);
@@ -622,7 +651,14 @@ async fn handle_cmd(
             (None, _) => err_json("Missing instance_id parameter".into()),
         },
         "unlock_check" => {
-            let items = crate::unlock::run_unlock_checks().await;
+            let proxy = match instance_id {
+                Some(id) => match agent.unlock_proxy_addr(&id).await {
+                    Ok(p) => Some(p),
+                    Err(e) => return err_json(e.to_string()),
+                },
+                None => None,
+            };
+            let items = crate::unlock::run_unlock_checks(proxy.as_deref()).await;
             ok_json("ok", items)
         }
         "probe_instance" => match instance_id {

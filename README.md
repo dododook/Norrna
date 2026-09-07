@@ -47,7 +47,9 @@ bash <(curl -fsSL http://面板IP:3000/norrna_agent.sh) \
 
 转发列表每条都有 **拨测**：由该节点对远程地址做 3 次 TCP 连接，显示平均延迟（悬停可看 min/avg/max 和丢包）。普通转发测 `remote`，端口复用客户端测 `final_target`。
 
-Agent 卡片上的 **解锁**：从该节点默认出口检测 ChatGPT / Netflix / YouTube / Disney+ / TikTok / Spotify 等（不是某条转发隧道）。
+Agent 卡片 **本机解锁**：测这台机器自己的网卡出口（中转本机）。
+
+转发列表 **落地解锁**：请求经这条转发送到远程（落地）。落地需提供 HTTP 或 SOCKS 代理；若只是普通 TCP 转发，请在落地那台也装 Agent，再点它的「本机解锁」。
 
 右上角 **通知设置** 可填 Telegram Bot Token 和 Chat ID。Agent 离线、月流量超过编辑里填的限额时会推送到 TG。流量按节点网卡累计，每月自动清零。
 

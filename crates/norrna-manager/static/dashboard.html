@@ -2175,7 +2175,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                                 <div class="server-name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;"><rect x="5" y="11" width="14" height="10" rx="2"/><circle cx="9" cy="15" r="1" fill="currentColor"/><circle cx="15" cy="15" r="1" fill="currentColor"/><path d="M9 7h6v4H9z"/><path d="M12 7V4M8 11V9M16 11V9"/></svg>${escapeHtml(a.name)}</div>
                             </div>
                             <div class="agent-card-actions">
-                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); runUnlockCheck('${a.id}')">解锁</button>
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); runUnlockCheck('${a.id}')">本机解锁</button>
                                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); showEditAgentModal('${a.id}')">编辑</button>
                                 <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteAgent('${a.id}')">删除</button>
                             </div>
@@ -2515,6 +2515,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                             <td>
                                 <div style="display:flex;gap:5px;flex-wrap:wrap;">
                                     <button class="btn btn-secondary btn-sm" onclick="probeAgentInstance('${agent.id}', '${inst.id}')">拨测</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="runUnlockCheck('${agent.id}', '${inst.id}')">落地解锁</button>
                                     ${inst.status === 'Running' ? 
                                         `<button class="btn btn-warning btn-sm" onclick="stopAgentInstance('${agent.id}', '${inst.id}')">停止</button>
                                          <button class="btn btn-secondary btn-sm" onclick="restartAgentInstance('${agent.id}', '${inst.id}')">重启</button>` :
@@ -3523,13 +3524,19 @@ async function createInstance(e) {
         function closeUnlockModal() {
             document.getElementById('unlockModal').classList.remove('active');
         }
-        async function runUnlockCheck(agentId) {
+        async function runUnlockCheck(agentId, instanceId) {
             const name = (agents.find(x => x.id === agentId) || {}).name || agentId;
-            document.getElementById('unlockTitle').textContent = '解锁检测 · ' + name;
-            document.getElementById('unlockBody').innerHTML = '正在从该节点出口检测，大约 10 秒…';
+            const viaLanding = !!instanceId;
+            document.getElementById('unlockTitle').textContent = (viaLanding ? '落地解锁 · ' : '本机解锁 · ') + name;
+            document.getElementById('unlockBody').innerHTML = viaLanding
+                ? '正在经这条转发测落地出口，大约 10 秒…'
+                : '正在测该 Agent 本机出口（中转自己），大约 10 秒…';
             document.getElementById('unlockModal').classList.add('active');
             try {
-                const res = await fetch(`/api/agents/${agentId}/unlock`, { method: 'POST' });
+                const url = viaLanding
+                    ? `${instanceBase(agentId)}/instances/${instanceId}/unlock`
+                    : `/api/agents/${agentId}/unlock`;
+                const res = await fetch(url, { method: 'POST' });
                 const data = await res.json();
                 const items = data.data || [];
                 if (!data.success) {
@@ -3544,7 +3551,7 @@ async function createInstance(e) {
                     else { label = '超时'; }
                     return `<tr><td style="padding:8px 4px;">${escapeHtml(it.name)}</td><td style="padding:8px 4px;color:${color};font-weight:650;">${label}</td><td style="padding:8px 4px;color:#9ca3af;font-size:12px;">${escapeHtml(it.detail || '')}</td></tr>`;
                 }).join('');
-                document.getElementById('unlockBody').innerHTML = `<table style="width:100%;border-collapse:collapse;">${rows}</table><p style="color:#9ca3af;font-size:12px;margin-top:12px;">测的是该 Agent 默认出口，不是某条转发隧道。</p>`;
+                document.getElementById('unlockBody').innerHTML = `<table style="width:100%;border-collapse:collapse;">${rows}</table><p style="color:#9ca3af;font-size:12px;margin-top:12px;">${viaLanding ? '经该转发把请求送到落地再访问网站。落地需是 HTTP/SOCKS 代理，纯 TCP 转发请在落地安装 Agent 后点「本机解锁」。' : '这是中转/节点自己的网卡出口，不是落地。测落地请点转发上的「落地解锁」。'}</p>`;
             } catch (e) {
                 document.getElementById('unlockBody').innerHTML = '<p style="color:#dc2626;">' + escapeHtml(e.message) + '</p>';
             }
@@ -3793,7 +3800,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">Version 26.1.18</p>
+        <p style="color: var(--primary); margin: 0;">Version 26.1.19</p>
     </div>
 </div>
 

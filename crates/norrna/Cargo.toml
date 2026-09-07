@@ -1,6 +1,6 @@
 [package]
 name = "norrna"
-version = "26.1.18"
+version = "26.1.19"
 edition.workspace = true
 
 [[bin]]

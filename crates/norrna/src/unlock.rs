@@ -8,13 +8,49 @@ pub struct UnlockItem {
     pub detail: String,
 }
 
-pub async fn run_unlock_checks() -> Vec<UnlockItem> {
-    let client = match reqwest::Client::builder()
+pub async fn run_unlock_checks(proxy: Option<&str>) -> Vec<UnlockItem> {
+    if let Some(addr) = proxy {
+        let socks = run_with_client(Some(&format!("socks5h://{addr}"))).await;
+        if !all_failed(&socks) {
+            return socks;
+        }
+        let http = run_with_client(Some(&format!("http://{addr}"))).await;
+        if !all_failed(&http) {
+            return http;
+        }
+        return vec![UnlockItem {
+            name: "落地代理".into(),
+            status: "failed".into(),
+            detail: format!(
+                "无法经 {addr} 做 HTTP/SOCKS 解锁。落地若只是 TCP 转发，请在落地机器安装 Agent 后点「本机解锁」。"
+            ),
+        }];
+    }
+    run_with_client(None).await
+}
+
+fn all_failed(items: &[UnlockItem]) -> bool {
+    items.iter().all(|i| i.status == "failed")
+}
+
+async fn run_with_client(proxy: Option<&str>) -> Vec<UnlockItem> {
+    let mut builder = reqwest::Client::builder()
         .timeout(Duration::from_secs(8))
         .redirect(reqwest::redirect::Policy::limited(5))
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        .build()
-    {
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+    if let Some(p) = proxy {
+        match reqwest::Proxy::all(p) {
+            Ok(px) => builder = builder.proxy(px),
+            Err(e) => {
+                return vec![UnlockItem {
+                    name: "代理".into(),
+                    status: "failed".into(),
+                    detail: e.to_string(),
+                }]
+            }
+        }
+    }
+    let client = match builder.build() {
         Ok(c) => c,
         Err(e) => {
             return vec![UnlockItem {

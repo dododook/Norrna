@@ -107,6 +107,10 @@ pub fn router(state: AppState) -> Router {
             post(probe_instance),
         )
         .route("/api/agents/:id/unlock", post(unlock_agent))
+        .route(
+            "/api/agents/:agent_id/instances/:instance_id/unlock",
+            post(unlock_instance),
+        )
         .route("/api/settings", get(get_settings).post(save_settings_api))
         .route("/api/settings/telegram/test", post(test_telegram))
         .layer(CorsLayer::permissive())
@@ -651,6 +655,24 @@ async fn unlock_agent(
         return r;
     }
     match st.hub.command(&id, "unlock_check", None, None, None).await {
+        Ok(m) => unwrap_response(m),
+        Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
+    }
+}
+
+async fn unlock_instance(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path((agent_id, instance_id)): Path<(String, String)>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    match st
+        .hub
+        .command(&agent_id, "unlock_check", Some(instance_id), None, None)
+        .await
+    {
         Ok(m) => unwrap_response(m),
         Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
     }
