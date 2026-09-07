@@ -1,4 +1,4 @@
-use crate::models::{AgentConfig, AgentsData, ServerConfig, ServersData, User, UsersData};
+use crate::models::{AgentConfig, AgentsData, AppSettings, ServerConfig, ServersData, User, UsersData};
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 use tokio::sync::RwLock;
@@ -8,6 +8,7 @@ pub struct Storage {
     users: RwLock<UsersData>,
     agents: RwLock<AgentsData>,
     servers: RwLock<ServersData>,
+    settings: RwLock<AppSettings>,
 }
 
 impl Storage {
@@ -16,11 +17,13 @@ impl Storage {
         let users = load_or(dir.join("users.json"), UsersData { users: vec![] }).await?;
         let agents = load_or(dir.join("agents.json"), AgentsData { agents: vec![] }).await?;
         let servers = load_or(dir.join("servers.json"), ServersData { servers: vec![] }).await?;
+        let settings = load_or(dir.join("settings.json"), AppSettings::default()).await?;
         Ok(Self {
             dir: dir.to_path_buf(),
             users: RwLock::new(users),
             agents: RwLock::new(agents),
             servers: RwLock::new(servers),
+            settings: RwLock::new(settings),
         })
     }
 
@@ -68,6 +71,16 @@ impl Storage {
         let data = ServersData { servers };
         save(&self.dir.join("servers.json"), &data).await?;
         *self.servers.write().await = data;
+        Ok(())
+    }
+
+    pub async fn settings(&self) -> AppSettings {
+        self.settings.read().await.clone()
+    }
+
+    pub async fn save_settings(&self, settings: AppSettings) -> Result<()> {
+        save(&self.dir.join("settings.json"), &settings).await?;
+        *self.settings.write().await = settings;
         Ok(())
     }
 }

@@ -1231,6 +1231,7 @@
             </div>
             <div class="user-info">
                 <span class="username" id="currentUsername"></span>
+                <button class="header-btn" onclick="showNotifyModal()">通知设置</button>
                 <button class="header-btn" onclick="showChangePasswordModal()">修改密码</button>
                 <button class="header-btn" onclick="logout()">登出</button>
             </div>
@@ -1542,6 +1543,11 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                     <label>备注</label>
                     <textarea id="editAgentNote" name="note" placeholder="添加备注信息..." rows="3"></textarea>
                 </div>
+                <div class="form-group">
+                    <label>月流量限额（GB，0 为不限制）</label>
+                    <input type="number" id="editAgentQuota" name="traffic_quota_gb" min="0" step="1" value="0">
+                    <small style="color:#6b7280;">超额后向 Telegram 发通知（需先在右上角配置）</small>
+                </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeEditAgentModal()">取消</button>
                     <button type="submit" class="btn btn-primary">保存</button>
@@ -1619,6 +1625,51 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                     <button type="submit" class="btn btn-primary">保存</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="notifyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Telegram 通知</h3>
+                <button class="close-btn" onclick="closeNotifyModal()">×</button>
+            </div>
+            <form id="notifyForm" onsubmit="saveNotifySettings(event)">
+                <div class="form-group">
+                    <label>启用通知</label>
+                    <input type="checkbox" id="tgEnabled">
+                </div>
+                <div class="form-group">
+                    <label>Bot Token</label>
+                    <input type="text" id="tgToken" placeholder="123456:ABC-DEF...">
+                    <small>找 @BotFather 创建机器人</small>
+                </div>
+                <div class="form-group">
+                    <label>Chat ID</label>
+                    <input type="text" id="tgChat" placeholder="可以是个人或群组 ID">
+                    <small>找 @userinfobot 或把机器人拉进群后看更新</small>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="tgOffline" checked> Agent 离线通知</label>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="tgQuota" checked> 流量超额通知</label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="testTelegram()">发送测试</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="unlockModal" class="modal">
+        <div class="modal-content" style="max-width:520px;">
+            <div class="modal-header">
+                <h3 id="unlockTitle">解锁检测</h3>
+                <button class="close-btn" onclick="closeUnlockModal()">×</button>
+            </div>
+            <div id="unlockBody" style="padding:8px 0;">检测中…</div>
         </div>
     </div>
 
@@ -2124,11 +2175,13 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                                 <div class="server-name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;"><rect x="5" y="11" width="14" height="10" rx="2"/><circle cx="9" cy="15" r="1" fill="currentColor"/><circle cx="15" cy="15" r="1" fill="currentColor"/><path d="M9 7h6v4H9z"/><path d="M12 7V4M8 11V9M16 11V9"/></svg>${escapeHtml(a.name)}</div>
                             </div>
                             <div class="agent-card-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); runUnlockCheck('${a.id}')">解锁</button>
                                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); showEditAgentModal('${a.id}')">编辑</button>
                                 <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteAgent('${a.id}')">删除</button>
                             </div>
                         </div>
                         ${a.note ? `<div class="agent-note">${escapeHtml(a.note)}</div>` : ''}
+                        <div style="font-size:12px;color:#6b7280;margin:4px 0 0 2px;">${formatTraffic(a)}</div>
                         <div class="agent-footer">
                             <span class="server-status status-${a.status}"></span>
                             ${a.status === 'online' && (a.ip || a.memory_total > 0) ? `
@@ -2772,6 +2825,7 @@ async function connectServer(id) {
                     document.getElementById('editAgentName').value = agent.name || '';
                     document.getElementById('editAgentApiKey').value = agent.api_key || '********';
                     document.getElementById('editAgentNote').value = agent.note || '';
+                    document.getElementById('editAgentQuota').value = ((agent.traffic_quota_bytes || 0) / 1e9).toFixed(0);
                     document.getElementById('editAgentModal').classList.add('active');
                 } else {
                     // 降级方案：使用本地数据
@@ -2782,6 +2836,7 @@ async function connectServer(id) {
                     document.getElementById('editAgentName').value = agent.name || '';
                     document.getElementById('editAgentApiKey').value = '********';
                     document.getElementById('editAgentNote').value = agent.note || '';
+                    document.getElementById('editAgentQuota').value = ((agent.traffic_quota_bytes || 0) / 1e9).toFixed(0);
                     document.getElementById('editAgentModal').classList.add('active');
                 }
             } catch (e) {
@@ -2794,6 +2849,7 @@ async function connectServer(id) {
                 document.getElementById('editAgentName').value = agent.name || '';
                 document.getElementById('editAgentApiKey').value = '********';
                 document.getElementById('editAgentNote').value = agent.note || '';
+                document.getElementById('editAgentQuota').value = ((agent.traffic_quota_bytes || 0) / 1e9).toFixed(0);
                 document.getElementById('editAgentModal').classList.add('active');
             }
         }
@@ -2809,12 +2865,13 @@ async function connectServer(id) {
             const agentId = form.agent_id.value;
             const name = form.name.value;
             const note = form.note.value;
+            const traffic_quota_gb = parseFloat(document.getElementById('editAgentQuota').value || '0');
 
             try {
                 const response = await fetch(`/api/agents/${agentId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, note })
+                    body: JSON.stringify({ name, note, traffic_quota_gb })
                 });
                 const result = await response.json();
 
@@ -3402,6 +3459,97 @@ async function createInstance(e) {
             if (cell2) cell2.innerHTML = renderProbeCell(instanceId);
         }
 
+        function formatTraffic(a) {
+            const used = (a.traffic_used_bytes || 0) / 1e9;
+            const quota = a.traffic_quota_bytes || 0;
+            if (quota > 0) {
+                return `本月流量 ${used.toFixed(2)} / ${(quota / 1e9).toFixed(0)} GB`;
+            }
+            return `本月流量 ${used.toFixed(2)} GB`;
+        }
+
+        async function showNotifyModal() {
+            document.getElementById('notifyModal').classList.add('active');
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                const s = data.data || {};
+                document.getElementById('tgEnabled').checked = !!s.telegram_enabled;
+                document.getElementById('tgToken').value = s.telegram_bot_token || '';
+                document.getElementById('tgChat').value = s.telegram_chat_id || '';
+                document.getElementById('tgOffline').checked = s.notify_offline !== false;
+                document.getElementById('tgQuota').checked = s.notify_quota !== false;
+            } catch (e) {
+                showToast('加载设置失败: ' + e.message, 'error');
+            }
+        }
+        function closeNotifyModal() {
+            document.getElementById('notifyModal').classList.remove('active');
+        }
+        async function saveNotifySettings(e) {
+            e.preventDefault();
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        telegram_enabled: document.getElementById('tgEnabled').checked,
+                        telegram_bot_token: document.getElementById('tgToken').value.trim(),
+                        telegram_chat_id: document.getElementById('tgChat').value.trim(),
+                        notify_offline: document.getElementById('tgOffline').checked,
+                        notify_quota: document.getElementById('tgQuota').checked
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('通知设置已保存', 'success');
+                    closeNotifyModal();
+                } else {
+                    showToast(data.message || '保存失败', 'error');
+                }
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+        async function testTelegram() {
+            try {
+                const res = await fetch('/api/settings/telegram/test', { method: 'POST' });
+                const data = await res.json();
+                showToast(data.message || (data.success ? '已发送' : '失败'), data.success ? 'success' : 'error');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+        function closeUnlockModal() {
+            document.getElementById('unlockModal').classList.remove('active');
+        }
+        async function runUnlockCheck(agentId) {
+            const name = (agents.find(x => x.id === agentId) || {}).name || agentId;
+            document.getElementById('unlockTitle').textContent = '解锁检测 · ' + name;
+            document.getElementById('unlockBody').innerHTML = '正在从该节点出口检测，大约 10 秒…';
+            document.getElementById('unlockModal').classList.add('active');
+            try {
+                const res = await fetch(`/api/agents/${agentId}/unlock`, { method: 'POST' });
+                const data = await res.json();
+                const items = data.data || [];
+                if (!data.success) {
+                    document.getElementById('unlockBody').innerHTML = '<p style="color:#dc2626;">' + escapeHtml(data.message || '检测失败') + '</p>';
+                    return;
+                }
+                const rows = items.map(it => {
+                    let color = '#6b7280';
+                    let label = it.status;
+                    if (it.status === 'yes') { color = '#059669'; label = '解锁'; }
+                    else if (it.status === 'no') { color = '#dc2626'; label = '失败'; }
+                    else { label = '超时'; }
+                    return `<tr><td style="padding:8px 4px;">${escapeHtml(it.name)}</td><td style="padding:8px 4px;color:${color};font-weight:650;">${label}</td><td style="padding:8px 4px;color:#9ca3af;font-size:12px;">${escapeHtml(it.detail || '')}</td></tr>`;
+                }).join('');
+                document.getElementById('unlockBody').innerHTML = `<table style="width:100%;border-collapse:collapse;">${rows}</table><p style="color:#9ca3af;font-size:12px;margin-top:12px;">测的是该 Agent 默认出口，不是某条转发隧道。</p>`;
+            } catch (e) {
+                document.getElementById('unlockBody').innerHTML = '<p style="color:#dc2626;">' + escapeHtml(e.message) + '</p>';
+            }
+        }
+
         async function startAgentInstance(agentId, instanceId) {
             try {
                 const res = await fetch(`${instanceBase(agentId)}/instances/${instanceId}/start`, { method: 'POST' });
@@ -3608,7 +3756,7 @@ async function createInstance(e) {
         // 点击模态框外部关闭
         // 修复：点击模态框外部关闭
         (function() {
-            const modals = ['editNoteModal', 'editInstanceModal', 'addInstanceModal', 'addAgentModal', 'editAgentModal', 'agentInfoModal', 'addServerModal', 'changePasswordModal'];
+            const modals = ['editNoteModal', 'editInstanceModal', 'addInstanceModal', 'addAgentModal', 'editAgentModal', 'agentInfoModal', 'addServerModal', 'changePasswordModal', 'notifyModal', 'unlockModal'];
             
             // 为每个模态框添加点击事件
             modals.forEach(modalId => {
@@ -3645,7 +3793,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">Version 26.1.17</p>
+        <p style="color: var(--primary); margin: 0;">Version 26.1.18</p>
     </div>
 </div>
 

@@ -55,6 +55,38 @@ pub struct AgentConfig {
     pub multiplex_capable: bool,
     #[serde(default)]
     pub multiplex_port: u16,
+    #[serde(default)]
+    pub traffic_quota_bytes: u64,
+    #[serde(default)]
+    pub traffic_used_bytes: u64,
+    #[serde(default)]
+    pub traffic_month: String,
+    #[serde(default)]
+    pub last_rx_bytes: u64,
+    #[serde(default)]
+    pub last_tx_bytes: u64,
+    #[serde(default)]
+    pub quota_notified: bool,
+    #[serde(default)]
+    pub offline_notified: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AppSettings {
+    #[serde(default)]
+    pub telegram_bot_token: String,
+    #[serde(default)]
+    pub telegram_chat_id: String,
+    #[serde(default)]
+    pub telegram_enabled: bool,
+    #[serde(default = "on")]
+    pub notify_offline: bool,
+    #[serde(default = "on")]
+    pub notify_quota: bool,
+}
+
+fn on() -> bool {
+    true
 }
 
 fn offline() -> String {
@@ -123,6 +155,8 @@ pub struct UpdateAgentRequest {
     pub name: Option<String>,
     #[serde(default)]
     pub api_key: Option<String>,
+    #[serde(default)]
+    pub traffic_quota_gb: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]

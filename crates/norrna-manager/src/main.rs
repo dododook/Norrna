@@ -1,6 +1,7 @@
 mod auth;
 mod hub;
 mod models;
+mod notify;
 mod storage;
 mod web;
 
@@ -12,7 +13,7 @@ use tracing_subscriber::EnvFilter;
 use web::{router, AppState};
 
 #[derive(Parser, Debug)]
-#[command(name = "norrna-manager", version = "26.1.17", about = "Norrna-Manager 26.1.17")]
+#[command(name = "norrna-manager", version = "26.1.18", about = "Norrna-Manager 26.1.18")]
 struct Args {
     /// Web 管理面板端口
     #[arg(long, env = "WEBPORT")]
@@ -39,6 +40,7 @@ async fn main() -> anyhow::Result<()> {
     let agent_bind: std::net::SocketAddr = format!("[::]:{}", args.agentport).parse()?;
     let web_bind: std::net::SocketAddr = format!("[::]:{}", args.webport).parse()?;
 
+    notify::spawn_watch(storage.clone());
     let hub_clone = hub.clone();
     tokio::spawn(async move {
         if let Err(e) = hub_clone.serve(agent_bind).await {
@@ -47,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
     });
 
     println!("========================================");
-    println!("Norrna-Manager 26.1.17");
+    println!("Norrna-Manager 26.1.18");
     println!("HTTP: http://0.0.0.0:{}", args.webport);
     println!("Login: http://0.0.0.0:{}/login", args.webport);
     println!("Agent Port: {}", args.agentport);

@@ -408,6 +408,7 @@ where
                 let (memory_usage, memory_total) = sample_memory();
                 let (multiplex_capable, multiplex_port) = agent.mux_info().await;
                 let _ = enc_w.write_frame(writer, &WireMsg::Ping).await;
+                let (rx_bytes, tx_bytes) = sample_traffic();
                 if enc_w.write_frame(writer, &WireMsg::Status {
                     cpu_usage: cpu.sample(),
                     memory_usage,
@@ -416,6 +417,8 @@ where
                     hostname: hostname.into(),
                     multiplex_capable,
                     multiplex_port,
+                    rx_bytes,
+                    tx_bytes,
                 }).await.is_err() {
                     anyhow::bail!("[agent] Heartbeat send failed");
                 }
@@ -508,6 +511,31 @@ async fn tcp_probe(target: &str) -> serde_json::Value {
     })
 }
 
+fn sample_traffic() -> (u64, u64) {
+    let Ok(s) = std::fs::read_to_string("/proc/net/dev") else {
+        return (0, 0);
+    };
+    let mut rx = 0u64;
+    let mut tx = 0u64;
+    for line in s.lines().skip(2) {
+        let line = line.trim();
+        let Some((name, rest)) = line.split_once(':') else {
+            continue;
+        };
+        let name = name.trim();
+        if name == "lo" || name.starts_with("docker") || name.starts_with("veth") || name.starts_with("br-") {
+            continue;
+        }
+        let mut nums = rest.split_whitespace().filter_map(|x| x.parse::<u64>().ok());
+        rx += nums.next().unwrap_or(0);
+        for _ in 0..7 {
+            let _ = nums.next();
+        }
+        tx += nums.next().unwrap_or(0);
+    }
+    (rx, tx)
+}
+
 fn sample_memory() -> (u64, u64) {
     let Ok(s) = std::fs::read_to_string("/proc/meminfo") else {
         return (0, 0);
@@ -593,6 +621,10 @@ async fn handle_cmd(
             (_, None) => err_json("Missing note parameter".into()),
             (None, _) => err_json("Missing instance_id parameter".into()),
         },
+        "unlock_check" => {
+            let items = crate::unlock::run_unlock_checks().await;
+            ok_json("ok", items)
+        }
         "probe_instance" => match instance_id {
             Some(id) => match agent.probe(&id).await {
                 Ok(v) => ok_json("ok", v),

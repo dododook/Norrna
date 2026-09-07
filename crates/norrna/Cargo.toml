@@ -1,6 +1,6 @@
 [package]
 name = "norrna"
-version = "26.1.17"
+version = "26.1.18"
 edition.workspace = true
 
 [[bin]]
@@ -19,3 +19,4 @@ clap.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 hostname = "0.4"
+reqwest.workspace = true

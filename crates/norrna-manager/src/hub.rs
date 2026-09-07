@@ -1,3 +1,4 @@
+use crate::notify::send_telegram;
 use crate::storage::Storage;
 use anyhow::Result;
 use std::collections::HashMap;
@@ -196,8 +197,17 @@ impl AgentHub {
                         hostname,
                         multiplex_capable,
                         multiplex_port,
+                        rx_bytes,
+                        tx_bytes,
                     }) => {
-                        let now = chrono::Utc::now().to_rfc3339();
+                        let now = chrono::Utc::now();
+                        let now_s = now.to_rfc3339();
+                        let month = now.format("%Y-%m").to_string();
+                        let mut recovered = false;
+                        let mut quota_hit = false;
+                        let mut quota_name = String::new();
+                        let mut quota_used = 0u64;
+                        let mut quota_limit = 0u64;
                         if is_agent {
                             let _ = storage
                                 .update_agent(&aid, |a| {
@@ -214,10 +224,60 @@ impl AgentHub {
                                     if !hostname.is_empty() {
                                         a.hostname = hostname;
                                     }
-                                    a.last_seen = now;
+                                    if a.offline_notified {
+                                        a.offline_notified = false;
+                                        recovered = true;
+                                        quota_name = a.name.clone();
+                                    }
+                                    if a.traffic_month != month {
+                                        a.traffic_month = month.clone();
+                                        a.traffic_used_bytes = 0;
+                                        a.quota_notified = false;
+                                    }
+                                    if a.last_rx_bytes > 0 || a.last_tx_bytes > 0 {
+                                        if rx_bytes >= a.last_rx_bytes && tx_bytes >= a.last_tx_bytes {
+                                            a.traffic_used_bytes = a.traffic_used_bytes
+                                                .saturating_add(rx_bytes - a.last_rx_bytes)
+                                                .saturating_add(tx_bytes - a.last_tx_bytes);
+                                        }
+                                    }
+                                    a.last_rx_bytes = rx_bytes;
+                                    a.last_tx_bytes = tx_bytes;
+                                    if a.traffic_quota_bytes > 0
+                                        && a.traffic_used_bytes >= a.traffic_quota_bytes
+                                        && !a.quota_notified
+                                    {
+                                        a.quota_notified = true;
+                                        quota_hit = true;
+                                        quota_name = a.name.clone();
+                                        quota_used = a.traffic_used_bytes;
+                                        quota_limit = a.traffic_quota_bytes;
+                                    }
+                                    a.last_seen = now_s.clone();
                                     a.status = "online".into();
                                 })
                                 .await;
+                            if recovered || quota_hit {
+                                let settings = storage.settings().await;
+                                if recovered && settings.notify_offline {
+                                    let _ = send_telegram(
+                                        &settings,
+                                        &format!("Norrna\nAgent 已恢复: {quota_name}"),
+                                    )
+                                    .await;
+                                }
+                                if quota_hit && settings.notify_quota {
+                                    let _ = send_telegram(
+                                        &settings,
+                                        &format!(
+                                            "Norrna 告警\nAgent 流量超额: {quota_name}\n已用 {:.2} GB / 限额 {:.2} GB",
+                                            quota_used as f64 / 1_000_000_000.0,
+                                            quota_limit as f64 / 1_000_000_000.0
+                                        ),
+                                    )
+                                    .await;
+                                }
+                            }
                         }
                     }
                     Ok(msg @ WireMsg::Response { .. }) => {
@@ -291,7 +351,7 @@ impl AgentHub {
         .await
         .map_err(|_| anyhow::anyhow!("Agent is not connected"))?;
 
-        match tokio::time::timeout(std::time::Duration::from_secs(20), rrx).await {
+        match tokio::time::timeout(std::time::Duration::from_secs(40), rrx).await {
             Ok(Ok(msg)) => Ok(msg),
             Ok(Err(_)) => anyhow::bail!("Response timeout"),
             Err(_) => {

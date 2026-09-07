@@ -107,6 +107,10 @@ pub enum WireMsg {
         multiplex_capable: bool,
         #[serde(default)]
         multiplex_port: u16,
+        #[serde(default)]
+        rx_bytes: u64,
+        #[serde(default)]
+        tx_bytes: u64,
     },
     #[serde(rename = "command")]
     Command {

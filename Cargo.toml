@@ -8,7 +8,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
-version = "26.1.17"
+version = "26.1.18"
 license = "MIT"
 authors = ["Norrna"]
 
@@ -25,3 +25,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "2"
 chacha20poly1305 = "0.10"
 base64 = "0.22"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

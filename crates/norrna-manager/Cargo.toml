@@ -22,3 +22,4 @@ axum = { version = "0.7", features = ["json", "macros"] }
 tower-http = { version = "0.5", features = ["cors"] }
 jsonwebtoken = "9.3"
 md5 = "0.7"
+reqwest.workspace = true

@@ -1,13 +1,14 @@
 mod agent;
 mod realm;
 mod relay;
+mod unlock;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug)]
-#[command(name = "norrna", version = "26.1.17", about = "Norrna agent (Realm kernel)")]
+#[command(name = "norrna", version = "26.1.18", about = "Norrna agent (Realm kernel)")]
 struct Cli {
     #[command(subcommand)]
     cmd: Commands,

@@ -106,6 +106,9 @@ pub fn router(state: AppState) -> Router {
             "/api/agents/:agent_id/instances/:instance_id/probe",
             post(probe_instance),
         )
+        .route("/api/agents/:id/unlock", post(unlock_agent))
+        .route("/api/settings", get(get_settings).post(save_settings_api))
+        .route("/api/settings/telegram/test", post(test_telegram))
         .layer(CorsLayer::permissive())
         .with_state(state)
 }
@@ -354,6 +357,9 @@ fn public_agent(a: &AgentConfig) -> serde_json::Value {
         "updated_at": a.updated_at,
         "multiplex_capable": a.multiplex_capable,
         "user_id": a.user_id,
+        "traffic_quota_bytes": a.traffic_quota_bytes,
+        "traffic_used_bytes": a.traffic_used_bytes,
+        "traffic_month": a.traffic_month,
     })
 }
 
@@ -409,6 +415,13 @@ async fn create_agent(
         updated_at: now,
         multiplex_capable: true,
         multiplex_port: 0,
+        traffic_quota_bytes: 0,
+        traffic_used_bytes: 0,
+        traffic_month: String::new(),
+        last_rx_bytes: 0,
+        last_tx_bytes: 0,
+        quota_notified: false,
+        offline_notified: false,
     };
     agents.push(agent.clone());
     let _ = st.storage.save_agents(agents).await;
@@ -452,6 +465,10 @@ async fn update_agent(
                 if k != "********" && !k.is_empty() {
                     a.api_key = k;
                 }
+            }
+            if let Some(gb) = req.traffic_quota_gb {
+                a.traffic_quota_bytes = (gb.max(0.0) * 1_000_000_000.0) as u64;
+                a.quota_notified = false;
             }
             a.updated_at = chrono::Utc::now().to_rfc3339();
         })
@@ -623,6 +640,76 @@ async fn restart_instance(
         return r;
     }
     inst_cmd(&st, &agent_id, instance_id, "restart_instance").await
+}
+
+async fn unlock_agent(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    match st.hub.command(&id, "unlock_check", None, None, None).await {
+        Ok(m) => unwrap_response(m),
+        Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
+    }
+}
+
+async fn get_settings(State(st): State<AppState>, headers: HeaderMap) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    let s = st.storage.settings().await;
+    Json(ApiResponse::ok(serde_json::json!({
+        "telegram_bot_token": s.telegram_bot_token,
+        "telegram_chat_id": s.telegram_chat_id,
+        "telegram_enabled": s.telegram_enabled,
+        "notify_offline": s.notify_offline,
+        "notify_quota": s.notify_quota,
+    })))
+    .into_response()
+}
+
+async fn save_settings_api(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(body): Json<serde_json::Value>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    let mut s = st.storage.settings().await;
+    if let Some(v) = body.get("telegram_bot_token").and_then(|x| x.as_str()) {
+        s.telegram_bot_token = v.to_string();
+    }
+    if let Some(v) = body.get("telegram_chat_id").and_then(|x| x.as_str()) {
+        s.telegram_chat_id = v.to_string();
+    }
+    if let Some(v) = body.get("telegram_enabled").and_then(|x| x.as_bool()) {
+        s.telegram_enabled = v;
+    }
+    if let Some(v) = body.get("notify_offline").and_then(|x| x.as_bool()) {
+        s.notify_offline = v;
+    }
+    if let Some(v) = body.get("notify_quota").and_then(|x| x.as_bool()) {
+        s.notify_quota = v;
+    }
+    match st.storage.save_settings(s).await {
+        Ok(()) => Json(ApiResponse::<()>::msg(true, "已保存")).into_response(),
+        Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
+    }
+}
+
+async fn test_telegram(State(st): State<AppState>, headers: HeaderMap) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    let s = st.storage.settings().await;
+    match crate::notify::send_telegram(&s, "Norrna 测试消息：通知通道正常").await {
+        Ok(()) => Json(ApiResponse::<()>::msg(true, "已发送测试消息")).into_response(),
+        Err(e) => Json(ApiResponse::<()>::msg(false, e)).into_response(),
+    }
 }
 
 async fn probe_instance(
