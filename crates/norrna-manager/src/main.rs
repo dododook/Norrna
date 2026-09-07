@@ -14,7 +14,7 @@ use tracing_subscriber::EnvFilter;
 use web::{router, AppState};
 
 #[derive(Parser, Debug)]
-#[command(name = "norrna-manager", version = "26.1.26", about = "Norrna-Manager 26.1.26")]
+#[command(name = "norrna-manager", version = "26.1.27", about = "Norrna-Manager 26.1.27")]
 struct Args {
     /// Web 管理面板端口
     #[arg(long, env = "WEBPORT")]
@@ -50,7 +50,7 @@ async fn main() -> anyhow::Result<()> {
     });
 
     println!("========================================");
-    println!("Norrna-Manager 26.1.26");
+    println!("Norrna-Manager 26.1.27");
     println!("HTTP: http://0.0.0.0:{}", args.webport);
     println!("Login: http://0.0.0.0:{}/login", args.webport);
     println!("Agent Port: {}", args.agentport);
