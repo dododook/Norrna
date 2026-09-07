@@ -19,10 +19,10 @@ pub async fn run_unlock_checks(proxy: Option<&str>) -> Vec<UnlockItem> {
             return http;
         }
         return vec![UnlockItem {
-            name: "落地代理".into(),
-            status: "failed".into(),
+            name: "落地解锁".into(),
+            status: "unsupported".into(),
             detail: format!(
-                "无法经 {addr} 做 HTTP/SOCKS 解锁。落地若只是 TCP 转发，请在落地机器安装 Agent 后点「本机解锁」。"
+                "这条转发是普通 TCP（{addr}），不能经隧道去测 Netflix / ChatGPT。请在落地那台机器安装 Agent，打开该节点后点「解锁」。"
             ),
         }];
     }

@@ -2280,7 +2280,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                                 <div class="server-name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;"><rect x="5" y="11" width="14" height="10" rx="2"/><circle cx="9" cy="15" r="1" fill="currentColor"/><circle cx="15" cy="15" r="1" fill="currentColor"/><path d="M9 7h6v4H9z"/><path d="M12 7V4M8 11V9M16 11V9"/></svg>${escapeHtml(a.name)}</div>
                             </div>
                             <div class="agent-card-actions">
-                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); runUnlockCheck('${a.id}')">本机解锁</button>
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); runUnlockCheck('${a.id}')">解锁</button>
                                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); doUpdateAgent('${a.id}')">更新</button>
                                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); doUpdateRealm('${a.id}')">更新内核</button>
                                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); showEditAgentModal('${a.id}')">编辑</button>
@@ -3720,10 +3720,10 @@ async function createInstance(e) {
         async function runUnlockCheck(agentId, instanceId) {
             const name = (agents.find(x => x.id === agentId) || {}).name || agentId;
             const viaLanding = !!instanceId;
-            document.getElementById('unlockTitle').textContent = (viaLanding ? '落地解锁 · ' : '本机解锁 · ') + name;
+            document.getElementById('unlockTitle').textContent = (viaLanding ? '落地解锁 · ' : '解锁 · ') + name;
             document.getElementById('unlockBody').innerHTML = viaLanding
                 ? '正在经这条转发测落地出口，大约 10 秒…'
-                : '正在测该 Agent 本机出口（中转自己），大约 10 秒…';
+                : '正在检测该节点出口，大约 10 秒…';
             document.getElementById('unlockModal').classList.add('active');
             try {
                 const url = viaLanding
@@ -3736,15 +3736,25 @@ async function createInstance(e) {
                     document.getElementById('unlockBody').innerHTML = '<p style="color:#dc2626;">' + escapeHtml(data.message || '检测失败') + '</p>';
                     return;
                 }
+                if (items.length === 1 && items[0].status === 'unsupported') {
+                    document.getElementById('unlockBody').innerHTML = `
+                        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;line-height:1.65;color:#334155;">
+                            ${escapeHtml(items[0].detail || '')}
+                        </div>`;
+                    return;
+                }
                 const rows = items.map(it => {
                     let color = '#6b7280';
                     let label = it.status;
                     if (it.status === 'yes') { color = '#059669'; label = '解锁'; }
-                    else if (it.status === 'no') { color = '#dc2626'; label = '失败'; }
-                    else { label = '超时'; }
+                    else if (it.status === 'no') { color = '#dc2626'; label = '未解锁'; }
+                    else { color = '#6b7280'; label = '超时'; }
                     return `<tr><td style="padding:8px 4px;">${escapeHtml(it.name)}</td><td style="padding:8px 4px;color:${color};font-weight:650;">${label}</td><td style="padding:8px 4px;color:#9ca3af;font-size:12px;">${escapeHtml(it.detail || '')}</td></tr>`;
                 }).join('');
-                document.getElementById('unlockBody').innerHTML = `<table style="width:100%;border-collapse:collapse;">${rows}</table><p style="color:#9ca3af;font-size:12px;margin-top:12px;">${viaLanding ? '经该转发把请求送到落地再访问网站。落地需是 HTTP/SOCKS 代理，纯 TCP 转发请在落地安装 Agent 后点「本机解锁」。' : '这是中转/节点自己的网卡出口，不是落地。测落地请点转发上的「落地解锁」。'}</p>`;
+                const hint = viaLanding
+                    ? '请求经该转发到达落地后再访问网站。'
+                    : '测的是这台 Agent 自己的出口。';
+                document.getElementById('unlockBody').innerHTML = `<table style="width:100%;border-collapse:collapse;">${rows}</table><p style="color:#9ca3af;font-size:12px;margin-top:12px;">${hint}</p>`;
             } catch (e) {
                 document.getElementById('unlockBody').innerHTML = '<p style="color:#dc2626;">' + escapeHtml(e.message) + '</p>';
             }
@@ -3993,7 +4003,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">26.1.22</p>
+        <p style="color: var(--primary); margin: 0;">26.1.23</p>
     </div>
 </div>
 
