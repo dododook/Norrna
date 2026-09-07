@@ -450,9 +450,17 @@
         }
 
         .agent-card-actions {
-            display: flex;
-            gap: 6px;
-            margin-left: 10px;
+            display: none;
+        }
+
+        .agent-meta {
+            font-size: 12px;
+            color: #6b7280;
+            margin: 2px 0 0 2px;
+            line-height: 1.45;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .server-name {
@@ -618,6 +626,35 @@
         .detail-label {
             font-weight: 600;
             color: var(--text-dark);
+        }
+
+        #agent-pop {
+            position: fixed;
+            z-index: 10000;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.14);
+            min-width: 240px;
+            max-width: 280px;
+            display: none;
+        }
+        #agent-pop.active { display: block; }
+        #agent-pop .pop-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f3f4f6;
+        }
+        #agent-pop .pop-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        #agent-pop .pop-actions .btn-danger {
+            grid-column: 1 / -1;
         }
 
         .detail-value {
@@ -1808,6 +1845,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
     </div>
 
     <div id="global-tooltip"></div>
+    <div id="agent-pop"></div>
 
     <div id="toast" class="toast">
         <span class="toast-icon" id="toastIcon"></span>
@@ -2280,30 +2318,14 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                             <div class="agent-card-left">
                                 <div class="server-name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;"><rect x="5" y="11" width="14" height="10" rx="2"/><circle cx="9" cy="15" r="1" fill="currentColor"/><circle cx="15" cy="15" r="1" fill="currentColor"/><path d="M9 7h6v4H9z"/><path d="M12 7V4M8 11V9M16 11V9"/></svg>${escapeHtml(a.name)}</div>
                             </div>
-                            <div class="agent-card-actions">
-                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); runUnlockCheck('${a.id}')">解锁</button>
-                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); doUpdateAgent('${a.id}')">更新</button>
-                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); doUpdateRealm('${a.id}')">更新内核</button>
-                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); showEditAgentModal('${a.id}')">编辑</button>
-                                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteAgent('${a.id}')">删除</button>
-                            </div>
                         </div>
                         ${a.note ? `<div class="agent-note">${escapeHtml(a.note)}</div>` : ''}
-                        <div style="font-size:12px;color:#6b7280;margin:4px 0 0 2px;">${formatTraffic(a)}${a.realm_version ? ' · ' + escapeHtml(a.realm_version) : ''}</div>
+                        <div class="agent-meta">${formatTraffic(a)}${shortRealmVersion(a.realm_version) ? ' · ' + escapeHtml(shortRealmVersion(a.realm_version)) : ''}</div>
                         <div class="agent-footer">
                             <span class="server-status status-${a.status}"></span>
-                            ${a.status === 'online' && (a.ip || a.memory_total > 0) ? `
-                                <div class="btn-details-wrapper" onclick="event.stopPropagation();"
-                                     onmouseenter="showGlobalTooltip(this)" 
-                                     onmouseleave="hideGlobalTooltip()"
-                                     data-ip="${escapeHtml(a.ip)}"
-                                     data-cpu="${a.cpu_usage}"
-                                     data-mem="${memUsagePercent}"
-                                     data-mem-gb="${memUsageGB}"
-                                     data-last-seen="${a.last_seen}">
-                                    <button class="btn-details">详情 ▸</button>
-                                </div>
-                            ` : ''}
+                            <div class="btn-details-wrapper" onclick="event.stopPropagation();">
+                                <button class="btn-details" onclick="toggleAgentDetails(event, '${a.id}')">详情 ▸</button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -3568,6 +3590,59 @@ async function createInstance(e) {
             if (cell2) cell2.innerHTML = renderProbeCell(instanceId);
         }
 
+        function shortRealmVersion(s) {
+            if (!s) return '';
+            const m = String(s).match(/(\d+\.\d+\.\d+)/);
+            return m ? 'Realm ' + m[1] : String(s).split('[')[0].trim();
+        }
+
+        function toggleAgentDetails(event, agentId) {
+            event.stopPropagation();
+            const pop = document.getElementById('agent-pop');
+            if (pop.classList.contains('active') && pop.dataset.id === agentId) {
+                pop.classList.remove('active');
+                return;
+            }
+            const a = agents.find(x => x.id === agentId);
+            if (!a) return;
+            const memUsagePercent = a.memory_total > 0 ? ((a.memory_usage / a.memory_total) * 100).toFixed(1) : '0';
+            const memUsageGB = (a.memory_usage / 1024 / 1024 / 1024).toFixed(1);
+            const lastSeen = a.last_seen ? new Date(a.last_seen).toLocaleString('zh-CN') : '—';
+            const online = a.status === 'online';
+            pop.dataset.id = agentId;
+            pop.innerHTML = `
+                <div class="detail-item"><span class="detail-label">状态</span><span class="detail-value">${online ? '在线' : '离线'}</span></div>
+                ${a.ip ? `<div class="detail-item"><span class="detail-label">IP</span><span class="detail-value">${escapeHtml(a.ip)}</span></div>` : ''}
+                <div class="detail-item"><span class="detail-label">CPU</span><span class="detail-value">${parseFloat(a.cpu_usage || 0).toFixed(1)}%</span></div>
+                <div class="detail-item"><span class="detail-label">内存</span><span class="detail-value">${memUsagePercent}% (${memUsageGB}G)</span></div>
+                <div class="detail-item"><span class="detail-label">流量</span><span class="detail-value">${formatTraffic(a)}</span></div>
+                <div class="detail-item"><span class="detail-label">内核</span><span class="detail-value">${escapeHtml(shortRealmVersion(a.realm_version) || '—')}</span></div>
+                <div style="font-size:12px;color:#94a3b8;margin-top:6px;">${escapeHtml(lastSeen)}</div>
+                <div class="pop-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="runUnlockCheck('${a.id}')">解锁</button>
+                    <button class="btn btn-secondary btn-sm" onclick="doUpdateAgent('${a.id}')">更新节点</button>
+                    <button class="btn btn-secondary btn-sm" onclick="doUpdateRealm('${a.id}')">更新内核</button>
+                    <button class="btn btn-secondary btn-sm" onclick="showEditAgentModal('${a.id}')">编辑</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteAgent('${a.id}')">删除</button>
+                </div>`;
+            pop.classList.add('active');
+            const rect = event.currentTarget.getBoundingClientRect();
+            let top = rect.bottom + 8;
+            let left = rect.right - 260;
+            if (left < 12) left = 12;
+            if (left + 280 > window.innerWidth - 12) left = window.innerWidth - 292;
+            if (top + 360 > window.innerHeight - 12) top = Math.max(12, rect.top - 8 - 320);
+            pop.style.top = top + 'px';
+            pop.style.left = left + 'px';
+        }
+
+        document.addEventListener('click', (e) => {
+            const pop = document.getElementById('agent-pop');
+            if (!pop || !pop.classList.contains('active')) return;
+            if (pop.contains(e.target)) return;
+            pop.classList.remove('active');
+        });
+
         function formatTraffic(a) {
             const used = (a.traffic_used_bytes || 0) / 1e9;
             const quota = a.traffic_quota_bytes || 0;
@@ -4056,7 +4131,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">26.1.24</p>
+        <p style="color: var(--primary); margin: 0;">26.1.25</p>
     </div>
 </div>
 
