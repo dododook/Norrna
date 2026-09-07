@@ -952,6 +952,16 @@
             min-height: 24px;
         }
 
+        .probe-ms {
+            font-variant-numeric: tabular-nums;
+            font-weight: 650;
+            font-size: 13px;
+        }
+        .probe-ms.good { color: #059669; }
+        .probe-ms.warn { color: #d97706; }
+        .probe-ms.bad { color: #dc2626; }
+        .probe-ms.fail { color: #9ca3af; }
+
         /* 广告横幅响应式 */
         .ad-banner {
             width: 100%;
@@ -1711,6 +1721,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
         let instanceSearchQuery = '';
         let currentServerId = null;
         let currentAgentId = null;
+        let probeResults = {};
         let instances = [];
         let currentUser = null;
         let viewMode = 'agents';
@@ -2378,7 +2389,8 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                                 <th style="width:22%;">远程地址</th>
                                 <th style="width:18%;">备注</th>
                                 <th style="width:5%;">状态</th>
-                                <th style="width:39%;">操作</th>
+                                <th style="width:10%;">延迟</th>
+                                <th style="width:29%;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -2446,8 +2458,10 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                                 </div>
                             </td>
                             <td><span class="status-badge ${statusClass}"></span></td>
+                            <td id="probe-${inst.id}">${renderProbeCell(inst.id)}</td>
                             <td>
                                 <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                                    <button class="btn btn-secondary btn-sm" onclick="probeAgentInstance('${agent.id}', '${inst.id}')">拨测</button>
                                     ${inst.status === 'Running' ? 
                                         `<button class="btn btn-warning btn-sm" onclick="stopAgentInstance('${agent.id}', '${inst.id}')">停止</button>
                                          <button class="btn btn-secondary btn-sm" onclick="restartAgentInstance('${agent.id}', '${inst.id}')">重启</button>` :
@@ -3343,6 +3357,51 @@ async function createInstance(e) {
         }
         */
 
+        function formatProbeMs(v) {
+            if (v == null || Number.isNaN(v)) return '—';
+            return v < 10 ? v.toFixed(1) : Math.round(v);
+        }
+
+        function renderProbeCell(instanceId) {
+            const p = probeResults[instanceId];
+            if (!p) return '<span class="probe-ms fail">—</span>';
+            if (p.pending) return '<span class="probe-ms">测…</span>';
+            if (!p.ok) return `<span class="probe-ms fail" title="${escapeHtml(p.target || '')}">超时</span>`;
+            const avg = p.avg_ms;
+            let cls = 'good';
+            if (avg >= 150) cls = 'bad';
+            else if (avg >= 50) cls = 'warn';
+            const title = `${p.target || ''}  min ${formatProbeMs(p.min_ms)} / avg ${formatProbeMs(p.avg_ms)} / max ${formatProbeMs(p.max_ms)} ms  丢包 ${Math.round(p.loss || 0)}%`;
+            return `<span class="probe-ms ${cls}" title="${escapeHtml(title)}">${formatProbeMs(avg)} ms</span>`;
+        }
+
+        async function probeAgentInstance(agentId, instanceId) {
+            probeResults[instanceId] = { pending: true };
+            const cell = document.getElementById('probe-' + instanceId);
+            if (cell) cell.innerHTML = renderProbeCell(instanceId);
+            try {
+                const res = await fetch(`${instanceBase(agentId)}/instances/${instanceId}/probe`, { method: 'POST' });
+                const data = await res.json();
+                const p = data.data || {};
+                if (!data.success) {
+                    probeResults[instanceId] = { ok: false, target: '' };
+                    showToast('拨测失败: ' + (data.message || '未知错误'), 'error');
+                } else {
+                    probeResults[instanceId] = p;
+                    if (p.ok) {
+                        showToast(`拨测 ${p.target}: ${formatProbeMs(p.avg_ms)} ms（min ${formatProbeMs(p.min_ms)} / max ${formatProbeMs(p.max_ms)}）`, 'success');
+                    } else {
+                        showToast(`拨测 ${p.target || ''} 超时（${p.success || 0}/${p.count || 3}）`, 'error');
+                    }
+                }
+            } catch (e) {
+                probeResults[instanceId] = { ok: false };
+                showToast('拨测错误: ' + e.message, 'error');
+            }
+            const cell2 = document.getElementById('probe-' + instanceId);
+            if (cell2) cell2.innerHTML = renderProbeCell(instanceId);
+        }
+
         async function startAgentInstance(agentId, instanceId) {
             try {
                 const res = await fetch(`${instanceBase(agentId)}/instances/${instanceId}/start`, { method: 'POST' });
@@ -3586,7 +3645,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">Version 26.1.16</p>
+        <p style="color: var(--primary); margin: 0;">Version 26.1.17</p>
     </div>
 </div>
 

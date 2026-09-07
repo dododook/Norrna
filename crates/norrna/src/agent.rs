@@ -5,7 +5,7 @@ use chrono::Utc;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::io::{BufReader, BufWriter};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
@@ -195,6 +195,29 @@ impl Agent {
             let _ = self.stop(id).await;
         }
         self.start(id).await
+    }
+
+    pub async fn probe(&self, id: &str) -> Result<serde_json::Value> {
+        let inst = self
+            .instances
+            .lock()
+            .await
+            .get(id)
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("Instance not found"))?;
+        let target = match inst.config.multiplex_mode {
+            2 => inst
+                .config
+                .final_target
+                .clone()
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| inst.config.remote.clone()),
+            _ => inst.config.remote.clone(),
+        };
+        if target.is_empty() || target == "127.0.0.1:1" {
+            anyhow::bail!("没有可拨测的远程地址");
+        }
+        Ok(tcp_probe(&target).await)
     }
 
     pub async fn delete(&self, id: &str) -> Result<()> {
@@ -452,6 +475,39 @@ impl CpuSampler {
     }
 }
 
+async fn tcp_probe(target: &str) -> serde_json::Value {
+    const ROUNDS: usize = 3;
+    const TIMEOUT: Duration = Duration::from_secs(2);
+    let mut samples: Vec<f64> = Vec::new();
+    for _ in 0..ROUNDS {
+        let t0 = Instant::now();
+        match tokio::time::timeout(TIMEOUT, TcpStream::connect(target)).await {
+            Ok(Ok(_stream)) => samples.push(t0.elapsed().as_secs_f64() * 1000.0),
+            _ => {}
+        }
+    }
+    let success = samples.len();
+    let (min_ms, avg_ms, max_ms) = if samples.is_empty() {
+        (None, None, None)
+    } else {
+        let min = samples.iter().cloned().fold(f64::MAX, f64::min);
+        let max = samples.iter().cloned().fold(f64::MIN, f64::max);
+        let avg = samples.iter().sum::<f64>() / success as f64;
+        (Some(min), Some(avg), Some(max))
+    };
+    serde_json::json!({
+        "target": target,
+        "ok": success > 0,
+        "count": ROUNDS,
+        "success": success,
+        "min_ms": min_ms,
+        "avg_ms": avg_ms,
+        "max_ms": max_ms,
+        "loss": ((ROUNDS - success) as f64 / ROUNDS as f64) * 100.0,
+        "timeout_ms": TIMEOUT.as_millis() as u64,
+    })
+}
+
 fn sample_memory() -> (u64, u64) {
     let Ok(s) = std::fs::read_to_string("/proc/meminfo") else {
         return (0, 0);
@@ -536,6 +592,13 @@ async fn handle_cmd(
             },
             (_, None) => err_json("Missing note parameter".into()),
             (None, _) => err_json("Missing instance_id parameter".into()),
+        },
+        "probe_instance" => match instance_id {
+            Some(id) => match agent.probe(&id).await {
+                Ok(v) => ok_json("ok", v),
+                Err(e) => err_json(e.to_string()),
+            },
+            None => err_json("Missing instance_id parameter".into()),
         },
         "get_instance" => match instance_id {
             Some(id) => match agent.list().await.into_iter().find(|i| i.id == id) {

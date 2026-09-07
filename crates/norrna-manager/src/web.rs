@@ -66,6 +66,10 @@ pub fn router(state: AppState) -> Router {
             "/api/servers/:server_id/instances/:instance_id/note",
             post(update_server_note),
         )
+        .route(
+            "/api/servers/:server_id/instances/:instance_id/probe",
+            post(probe_server_instance),
+        )
         .route("/api/agents/multiplex-capable", get(list_mux_agents))
         .route("/api/agents/:id/multiplex", post(set_agent_mux))
         .route("/api/agents", get(list_agents).post(create_agent))
@@ -97,6 +101,10 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/agents/:agent_id/instances/:instance_id/note",
             post(update_note),
+        )
+        .route(
+            "/api/agents/:agent_id/instances/:instance_id/probe",
+            post(probe_instance),
         )
         .layer(CorsLayer::permissive())
         .with_state(state)
@@ -615,6 +623,28 @@ async fn restart_instance(
         return r;
     }
     inst_cmd(&st, &agent_id, instance_id, "restart_instance").await
+}
+
+async fn probe_instance(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path((agent_id, instance_id)): Path<(String, String)>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    inst_cmd(&st, &agent_id, instance_id, "probe_instance").await
+}
+
+async fn probe_server_instance(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path((server_id, instance_id)): Path<(String, String)>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    inst_cmd(&st, &server_id, instance_id, "probe_instance").await
 }
 
 async fn update_note(

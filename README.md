@@ -45,6 +45,8 @@ bash <(curl -fsSL http://面板IP:3000/norrna_agent.sh) \
 
 面板里 Agent 变绿后即可创建转发。节点上还要放行你监听的业务端口。
 
+转发列表每条都有 **拨测**：由该节点对远程地址做 3 次 TCP 连接，显示平均延迟（悬停可看 min/avg/max 和丢包）。普通转发测 `remote`，端口复用客户端测 `final_target`。
+
 ---
 
 ## 路径和端口
