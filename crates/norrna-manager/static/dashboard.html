@@ -3743,9 +3743,9 @@ async function createInstance(e) {
                 <div style="font-size:12px;color:#94a3b8;margin-top:6px;">${escapeHtml(lastSeen)}</div>
                 <div class="pop-actions">
                     <button class="btn btn-secondary btn-sm" onclick="runUnlockCheck('${a.id}')">解锁</button>
+                    <button class="btn btn-secondary btn-sm" onclick="showEditAgentModal('${a.id}')">编辑</button>
                     <button class="btn btn-secondary btn-sm" onclick="doUpdateAgent('${a.id}')">更新节点</button>
                     <button class="btn btn-secondary btn-sm" onclick="doUpdateRealm('${a.id}')">更新内核</button>
-                    <button class="btn btn-secondary btn-sm" onclick="showEditAgentModal('${a.id}')">编辑</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteAgent('${a.id}')">删除</button>
                 </div>`;
             pop.classList.add('active');
@@ -4258,7 +4258,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">26.1.27</p>
+        <p style="color: var(--primary); margin: 0;">26.1.28</p>
     </div>
 </div>
 
