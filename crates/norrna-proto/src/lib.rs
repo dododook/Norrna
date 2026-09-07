@@ -111,6 +111,8 @@ pub enum WireMsg {
         rx_bytes: u64,
         #[serde(default)]
         tx_bytes: u64,
+        #[serde(default)]
+        realm_version: String,
     },
     #[serde(rename = "command")]
     Command {

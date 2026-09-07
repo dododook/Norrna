@@ -69,6 +69,8 @@ pub struct AgentConfig {
     pub quota_notified: bool,
     #[serde(default)]
     pub offline_notified: bool,
+    #[serde(default)]
+    pub realm_version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

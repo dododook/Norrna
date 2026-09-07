@@ -45,6 +45,63 @@ impl RealmEngine {
         self.binary.as_deref()
     }
 
+    pub fn version_string(&self) -> String {
+        let Some(p) = &self.binary else {
+            return String::new();
+        };
+        let out = std::process::Command::new(p).arg("-v").output().ok();
+        let Some(out) = out else {
+            return String::new();
+        };
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .next()
+            .unwrap_or("")
+            .trim()
+            .to_string()
+    }
+
+    pub async fn restart_all(&self) {
+        let Some(bin) = self.binary.clone() else {
+            return;
+        };
+        let mut g = self.children.lock().await;
+        let ids: Vec<String> = g.keys().cloned().collect();
+        for id in ids {
+            let Some(mut old) = g.remove(&id) else {
+                continue;
+            };
+            let _ = old.child.kill().await;
+            let _ = old.child.wait().await;
+            if !old.config_path.is_file() {
+                continue;
+            }
+            let mut cmd = Command::new(&bin);
+            cmd.arg("-c")
+                .arg(&old.config_path)
+                .kill_on_drop(true)
+                .stdin(Stdio::null())
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit());
+            match cmd.spawn() {
+                Ok(child) => {
+                    if let Some(pid) = child.id() {
+                        let _ = std::fs::write(&old.pid_path, pid.to_string());
+                    }
+                    g.insert(
+                        id,
+                        RealmChild {
+                            child,
+                            config_path: old.config_path,
+                            pid_path: old.pid_path,
+                        },
+                    );
+                }
+                Err(e) => tracing::error!("[realm] restart {id} after kernel update failed: {e}"),
+            }
+        }
+    }
+
     pub async fn start_one(&self, id: &str, cfg: &InstanceConfig, global: &Value) -> Result<()> {
         self.stop_one(id).await;
         let Some(bin) = self.binary.clone() else {

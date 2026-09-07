@@ -61,10 +61,6 @@ pub async fn apply_agent() -> Result<String> {
         .await?;
     let version = rel.tag_name.trim_start_matches('v').to_string();
     let exe = std::env::current_exe()?;
-    let dir = exe
-        .parent()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("/etc/norrna"));
     let norrna_url = rel
         .assets
         .iter()
@@ -72,18 +68,8 @@ pub async fn apply_agent() -> Result<String> {
         .map(|a| a.browser_download_url.as_str())
         .ok_or_else(|| anyhow::anyhow!("release 里没有 norrna"))?;
     replace_bin(&client, norrna_url, &exe).await?;
-    if let Some(url) = rel
-        .assets
-        .iter()
-        .find(|a| a.name == "realm")
-        .map(|a| a.browser_download_url.clone())
-    {
-        let realm = if dir.join("realm").exists() {
-            dir.join("realm")
-        } else {
-            PathBuf::from("/etc/norrna/realm")
-        };
-        let _ = replace_bin(&client, &url, &realm).await;
+    if let Err(e) = apply_realm().await {
+        tracing::warn!("[update] official realm: {e}");
     }
     std::thread::spawn(|| {
         std::thread::sleep(Duration::from_secs(2));
@@ -91,5 +77,112 @@ pub async fn apply_agent() -> Result<String> {
             .args(["restart", "norrna-agent"])
             .status();
     });
+    Ok(version)
+}
+
+pub fn realm_dest(data_hint: Option<&Path>) -> PathBuf {
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            let p = dir.join("realm");
+            if p.exists() || data_hint.is_none() {
+                return p;
+            }
+        }
+    }
+    if let Some(d) = data_hint {
+        let p = d.join("realm");
+        if p.exists() {
+            return p;
+        }
+    }
+    PathBuf::from("/etc/norrna/realm")
+}
+
+fn linux_realm_assets() -> Vec<&'static str> {
+    match std::env::consts::ARCH {
+        "x86_64" => vec![
+            "realm-x86_64-unknown-linux-musl.tar.gz",
+            "realm-x86_64-unknown-linux-gnu.tar.gz",
+        ],
+        "aarch64" => vec![
+            "realm-aarch64-unknown-linux-musl.tar.gz",
+            "realm-aarch64-unknown-linux-gnu.tar.gz",
+        ],
+        _ => vec![],
+    }
+}
+
+/// Download latest official Realm from zhboner/realm and replace the local binary.
+pub async fn apply_realm() -> Result<String> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(120))
+        .user_agent(format!("norrna/{}", current_version()))
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()?;
+    let rel: GhRelease = client
+        .get("https://api.github.com/repos/zhboner/realm/releases/latest")
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    let version = rel.tag_name.clone();
+    let assets = linux_realm_assets();
+    if assets.is_empty() {
+        anyhow::bail!("当前架构 {} 没有官方 Realm 包", std::env::consts::ARCH);
+    }
+    let mut tar_bytes = None;
+    let mut used = String::new();
+    for name in assets {
+        if let Some(a) = rel.assets.iter().find(|x| x.name == name) {
+            tracing::info!("[update] realm {}", a.browser_download_url);
+            match client.get(&a.browser_download_url).send().await {
+                Ok(resp) if resp.status().is_success() => {
+                    if let Ok(b) = resp.bytes().await {
+                        if b.len() > 1024 {
+                            tar_bytes = Some(b);
+                            used = name.to_string();
+                            break;
+                        }
+                    }
+                }
+                _ => continue,
+            }
+        }
+    }
+    let tar_bytes = tar_bytes.ok_or_else(|| anyhow::anyhow!("无法下载官方 Realm {version}"))?;
+    let tmpdir = std::env::temp_dir().join(format!("norrna-realm-{}", std::process::id()));
+    tokio::fs::create_dir_all(&tmpdir).await?;
+    let tar_path = tmpdir.join("realm.tar.gz");
+    tokio::fs::write(&tar_path, &tar_bytes).await?;
+    let status = tokio::process::Command::new("tar")
+        .args(["-xzf"])
+        .arg(&tar_path)
+        .current_dir(&tmpdir)
+        .status()
+        .await?;
+    if !status.success() {
+        let _ = tokio::fs::remove_dir_all(&tmpdir).await;
+        anyhow::bail!("解压 Realm 失败 ({used})");
+    }
+    let extracted = if tmpdir.join("realm").is_file() {
+        tmpdir.join("realm")
+    } else {
+        let _ = tokio::fs::remove_dir_all(&tmpdir).await;
+        anyhow::bail!("压缩包里没有 realm 可执行文件");
+    };
+    let dest = realm_dest(None);
+    if let Some(parent) = dest.parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        tokio::fs::set_permissions(&extracted, std::fs::Permissions::from_mode(0o755)).await?;
+    }
+    tokio::fs::copy(&extracted, &dest).await?;
+    let _ = tokio::fs::remove_dir_all(&tmpdir).await;
+    tracing::info!("[update] realm {} installed to {}", version, dest.display());
     Ok(version)
 }

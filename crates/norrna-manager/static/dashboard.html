@@ -2282,12 +2282,13 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                             <div class="agent-card-actions">
                                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); runUnlockCheck('${a.id}')">本机解锁</button>
                                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); doUpdateAgent('${a.id}')">更新</button>
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); doUpdateRealm('${a.id}')">更新内核</button>
                                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); showEditAgentModal('${a.id}')">编辑</button>
                                 <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteAgent('${a.id}')">删除</button>
                             </div>
                         </div>
                         ${a.note ? `<div class="agent-note">${escapeHtml(a.note)}</div>` : ''}
-                        <div style="font-size:12px;color:#6b7280;margin:4px 0 0 2px;">${formatTraffic(a)}</div>
+                        <div style="font-size:12px;color:#6b7280;margin:4px 0 0 2px;">${formatTraffic(a)}${a.realm_version ? ' · ' + escapeHtml(a.realm_version) : ''}</div>
                         <div class="agent-footer">
                             <span class="server-status status-${a.status}"></span>
                             ${a.status === 'online' && (a.ip || a.memory_total > 0) ? `
@@ -3598,7 +3599,7 @@ async function createInstance(e) {
                 let html = `<p>当前版本 <strong>${escapeHtml(s.current || '')}</strong></p>
                     <p style="margin-top:8px;">GitHub 最新 <strong>${escapeHtml(s.latest || '')}</strong> ${s.tag ? '(' + escapeHtml(s.tag) + ')' : ''}</p>`;
                 if (s.update_available) {
-                    html += '<p style="margin-top:10px;color:#059669;">有新版本，可在网页更新面板；节点请点左侧 Agent 的「更新」。</p>';
+                    html += '<p style="margin-top:10px;color:#059669;">有新版本：点「更新面板」。节点点左侧「更新」。Realm 内核点「更新内核」（官方 zhboner/realm 最新版）。</p>';
                     btn.style.display = 'inline-flex';
                 } else {
                     html += '<p style="margin-top:10px;color:#6b7280;">已是最新版本。</p>';
@@ -3626,6 +3627,24 @@ async function createInstance(e) {
                 setTimeout(() => location.reload(), 8000);
             }
         }
+        async function doUpdateRealm(agentId) {
+            const name = (agents.find(x => x.id === agentId) || {}).name || agentId;
+            if (!confirm('将从 GitHub 下载官方最新 Realm 并热重启该节点上的转发（会短暂闪断）。继续？')) return;
+            try {
+                const res = await fetch(`/api/agents/${agentId}/update-realm`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    const v = (data.data && data.data.version) ? data.data.version : '';
+                    showToast((name || '节点') + ' Realm 已更新' + (v ? '到 ' + v : ''), 'success');
+                    setTimeout(() => loadAgents().then(() => renderAgents()), 2000);
+                } else {
+                    showToast('更新内核失败: ' + (data.message || ''), 'error');
+                }
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
         async function doUpdateAgent(agentId) {
             const name = (agents.find(x => x.id === agentId) || {}).name || agentId;
             if (!confirm('将更新节点 ' + name + ' 并重启 Agent。继续？')) return;
@@ -3974,7 +3993,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">26.1.21</p>
+        <p style="color: var(--primary); margin: 0;">26.1.22</p>
     </div>
 </div>
 

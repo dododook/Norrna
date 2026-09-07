@@ -440,6 +440,7 @@ where
                     multiplex_port,
                     rx_bytes,
                     tx_bytes,
+                    realm_version: agent.realm.version_string(),
                 }).await.is_err() {
                     anyhow::bail!("[agent] Heartbeat send failed");
                 }
@@ -649,6 +650,13 @@ async fn handle_cmd(
             },
             (_, None) => err_json("Missing note parameter".into()),
             (None, _) => err_json("Missing instance_id parameter".into()),
+        },
+        "update_realm" => match crate::updater::apply_realm().await {
+            Ok(v) => {
+                agent.realm.restart_all().await;
+                ok_json("ok", serde_json::json!({ "version": v }))
+            }
+            Err(e) => err_json(e.to_string()),
         },
         "self_update" => match crate::updater::apply_agent().await {
             Ok(v) => ok_json("updating", serde_json::json!({ "version": v })),

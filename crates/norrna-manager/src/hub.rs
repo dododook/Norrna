@@ -199,6 +199,7 @@ impl AgentHub {
                         multiplex_port,
                         rx_bytes,
                         tx_bytes,
+                        realm_version,
                     }) => {
                         let now = chrono::Utc::now();
                         let now_s = now.to_rfc3339();
@@ -252,6 +253,9 @@ impl AgentHub {
                                         quota_name = a.name.clone();
                                         quota_used = a.traffic_used_bytes;
                                         quota_limit = a.traffic_quota_bytes;
+                                    }
+                                    if !realm_version.is_empty() {
+                                        a.realm_version = realm_version.clone();
                                     }
                                     a.last_seen = now_s.clone();
                                     a.status = "online".into();

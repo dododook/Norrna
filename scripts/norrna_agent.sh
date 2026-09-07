@@ -248,6 +248,11 @@ download_binary() {
 }
 
 install_realm() {
+    local latest=""
+    latest="$(curl -fsSL https://api.github.com/repos/zhboner/realm/releases/latest 2>/dev/null | grep -oE '"tag_name": *"[^"]+"' | head -n1 | cut -d'"' -f4 || true)"
+    if [[ -n "$latest" ]]; then
+        REALM_VERSION="$latest"
+    fi
     log_info "安装官方 Realm 转发内核 (${REALM_VERSION})..."
     local dest="$INSTALL_DIR/realm"
     local arch

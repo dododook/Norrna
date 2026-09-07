@@ -92,7 +92,8 @@ Agent 卡片 **本机解锁**：测这台机器自己的网卡出口（中转本
 
 - 对照当前版本和 GitHub 最新版
 - **更新面板**：下载新二进制并重启 `norrna-manager`（页面约 8 秒后刷新）
-- 左侧 Agent 卡片 **更新**：给该节点下发更新并重启 Agent
+- 左侧 Agent 卡片 **更新**：给该节点下发 Norrna 更新并重启 Agent
+- **更新内核**：从 [zhboner/realm](https://github.com/zhboner/realm/releases) 拉官方最新 Realm，只重启转发进程（Agent 本身不重启）
 
 第一次仍需命令行升到带此功能的版本；之后就可以在网页里升。
 

@@ -116,6 +116,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/update/check", get(update_check))
         .route("/api/update/manager", post(update_manager))
         .route("/api/agents/:id/update", post(update_agent_bin))
+        .route("/api/agents/:id/update-realm", post(update_agent_realm))
         .layer(CorsLayer::permissive())
         .with_state(state)
 }
@@ -367,6 +368,7 @@ fn public_agent(a: &AgentConfig) -> serde_json::Value {
         "traffic_quota_bytes": a.traffic_quota_bytes,
         "traffic_used_bytes": a.traffic_used_bytes,
         "traffic_month": a.traffic_month,
+        "realm_version": a.realm_version,
     })
 }
 
@@ -429,6 +431,7 @@ async fn create_agent(
         last_tx_bytes: 0,
         quota_notified: false,
         offline_notified: false,
+        realm_version: String::new(),
     };
     agents.push(agent.clone());
     let _ = st.storage.save_agents(agents).await;
@@ -759,6 +762,20 @@ async fn update_manager(State(st): State<AppState>, headers: HeaderMap) -> Respo
             format!("已下载 {v}，面板即将重启，请约 8 秒后刷新页面"),
         ))
         .into_response(),
+        Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
+    }
+}
+
+async fn update_agent_realm(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    match st.hub.command(&id, "update_realm", None, None, None).await {
+        Ok(m) => unwrap_response(m),
         Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
     }
 }
