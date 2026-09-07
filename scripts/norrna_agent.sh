@@ -62,15 +62,15 @@ show_help() {
     echo -e "    $0 server=IP:PORT apikey=YOUR_KEY [dns=DNS1:PORT,DNS2:PORT]"
     echo ""
     echo -e "  ${YELLOW}更新程序：${NC}"
-    echo -e "    $0 update"
+    echo -e "    $0 --update"
     echo ""
     echo -e "  ${YELLOW}卸载：${NC}"
-    echo -e "    $0 uninstall"
+    echo -e "    $0 --uninstall"
     echo ""
     echo -e "${BLUE}示例：${NC}"
     echo -e "  $0 server=103.73.220.3:13001 apikey=abc123xyz"
-    echo -e "  $0 update"
-    echo -e "  $0 uninstall"
+    echo -e "  $0 --update"
+    echo -e "  $0 --uninstall"
     echo ""
     echo -e "${GREEN}========================================${NC}"
     echo ""
@@ -596,13 +596,13 @@ main() {
     fi
     
     # 检查是否为卸载命令
-    if [ "$1" = "uninstall" ] || [ "$1" = "remove" ]; then
+    if [ "$1" = "uninstall" ] || [ "$1" = "remove" ] || [ "$1" = "--uninstall" ] || [ "$1" = "--remove" ]; then
         check_root
         uninstall
     fi
     
     # 检查是否为更新命令
-    if [ "$1" = "update" ] || [ "$1" = "upgrade" ]; then
+    if [ "$1" = "update" ] || [ "$1" = "upgrade" ] || [ "$1" = "--update" ] || [ "$1" = "--upgrade" ]; then
         check_root
         update
     fi

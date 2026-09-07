@@ -102,10 +102,10 @@ systemctl start norrna-manager
 在 **节点** 上：
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_agent.sh) update
+bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_agent.sh) --update
 ```
 
-等价：`upgrade`。会备份 `/etc/norrna/norrna`，并重装官方 Realm。
+`update` / `upgrade` 也可以。会备份 `/etc/norrna/norrna`，并重装官方 Realm。
 
 手动强制覆盖：
 
@@ -141,10 +141,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts
 ### 卸载 Agent
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_agent.sh) uninstall
+bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_agent.sh) --uninstall
 ```
 
-等价：`remove`。会停服务；是否删除 `/etc/norrna` 配置和实例数据会再问一次。
+`uninstall` / `remove` 也可以。会停服务；是否删除 `/etc/norrna` 配置和实例数据会再问一次。
 
 ---
 
