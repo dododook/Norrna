@@ -1028,6 +1028,7 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
         }
 
         .instance-table th:first-child { border-top-left-radius: 8px; }
@@ -2642,7 +2643,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                                 <th>监听地址</th>
                                 <th>远程地址</th>
                                 <th>备注</th>
-                                <th style="width:5%;">状态</th>
+                                <th>状态</th>
                                 <th style="width:8%;" title="点击延迟数字拨测">延迟</th>
                                 <th style="width:1%;text-align:right;">操作</th>
                             </tr>
@@ -4258,7 +4259,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">26.1.28</p>
+        <p style="color: var(--primary); margin: 0;">26.1.29</p>
     </div>
 </div>
 
