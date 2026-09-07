@@ -86,7 +86,17 @@ Agent 卡片 **本机解锁**：测这台机器自己的网卡出口（中转本
 
 更新会从 GitHub `releases/latest` 拉最新二进制。面板和节点要成对升级，只换一边会出现连不上（日志里常见 `Decryption failed`）。
 
-### 更新面板
+### 网页更新（推荐）
+
+面板右上角 **检查更新**：
+
+- 对照当前版本和 GitHub 最新版
+- **更新面板**：下载新二进制并重启 `norrna-manager`（页面约 8 秒后刷新）
+- 左侧 Agent 卡片 **更新**：给该节点下发更新并重启 Agent
+
+第一次仍需命令行升到带此功能的版本；之后就可以在网页里升。
+
+### 命令行更新面板
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts/norrna_manager.sh) --update

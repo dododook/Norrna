@@ -1301,6 +1301,7 @@
             </div>
             <div class="user-info">
                 <span class="username" id="currentUsername"></span>
+                <button class="header-btn" onclick="showUpdateModal()">检查更新</button>
                 <button class="header-btn" onclick="showNotifyModal()">通知设置</button>
                 <button class="header-btn" onclick="showChangePasswordModal()">修改密码</button>
                 <button class="header-btn" onclick="logout()">登出</button>
@@ -1695,6 +1696,20 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                     <button type="submit" class="btn btn-primary">保存</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="updateModal" class="modal">
+        <div class="modal-content" style="max-width:520px;">
+            <div class="modal-header">
+                <h3>检查更新</h3>
+                <button class="close-btn" onclick="closeUpdateModal()">×</button>
+            </div>
+            <div id="updateBody" style="padding:4px 0 12px;">正在检查 GitHub Release…</div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="loadUpdateInfo()">重新检查</button>
+                <button type="button" class="btn btn-primary" id="btnUpdateManager" onclick="doUpdateManager()" style="display:none;">更新面板</button>
+            </div>
         </div>
     </div>
 
@@ -2266,6 +2281,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                             </div>
                             <div class="agent-card-actions">
                                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); runUnlockCheck('${a.id}')">本机解锁</button>
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); doUpdateAgent('${a.id}')">更新</button>
                                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); showEditAgentModal('${a.id}')">编辑</button>
                                 <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteAgent('${a.id}')">删除</button>
                             </div>
@@ -3559,6 +3575,74 @@ async function createInstance(e) {
             return `本月流量 ${used.toFixed(2)} GB`;
         }
 
+        function closeUpdateModal() {
+            document.getElementById('updateModal').classList.remove('active');
+        }
+        async function showUpdateModal() {
+            document.getElementById('updateModal').classList.add('active');
+            await loadUpdateInfo();
+        }
+        async function loadUpdateInfo() {
+            const body = document.getElementById('updateBody');
+            const btn = document.getElementById('btnUpdateManager');
+            body.textContent = '正在检查 GitHub Release…';
+            btn.style.display = 'none';
+            try {
+                const res = await fetch('/api/update/check');
+                const data = await res.json();
+                if (!data.success) {
+                    body.innerHTML = '<p style="color:#dc2626;">' + escapeHtml(data.message || '检查失败') + '</p>';
+                    return;
+                }
+                const s = data.data || {};
+                let html = `<p>当前版本 <strong>${escapeHtml(s.current || '')}</strong></p>
+                    <p style="margin-top:8px;">GitHub 最新 <strong>${escapeHtml(s.latest || '')}</strong> ${s.tag ? '(' + escapeHtml(s.tag) + ')' : ''}</p>`;
+                if (s.update_available) {
+                    html += '<p style="margin-top:10px;color:#059669;">有新版本，可在网页更新面板；节点请点左侧 Agent 的「更新」。</p>';
+                    btn.style.display = 'inline-flex';
+                } else {
+                    html += '<p style="margin-top:10px;color:#6b7280;">已是最新版本。</p>';
+                }
+                if (s.notes) {
+                    html += '<pre style="margin-top:12px;max-height:160px;overflow:auto;background:#f8f9fa;padding:10px;border-radius:8px;font-size:12px;white-space:pre-wrap;">' + escapeHtml(s.notes) + '</pre>';
+                }
+                body.innerHTML = html;
+            } catch (e) {
+                body.innerHTML = '<p style="color:#dc2626;">' + escapeHtml(e.message) + '</p>';
+            }
+        }
+        async function doUpdateManager() {
+            if (!confirm('将下载最新面板并重启服务，页面会短暂断开。继续？')) return;
+            try {
+                const res = await fetch('/api/update/manager', { method: 'POST' });
+                const data = await res.json();
+                showToast(data.message || (data.success ? '正在更新' : '失败'), data.success ? 'success' : 'error');
+                if (data.success) {
+                    document.getElementById('updateBody').innerHTML = '<p>正在重启，约 8 秒后自动刷新…</p>';
+                    setTimeout(() => location.reload(), 8000);
+                }
+            } catch (e) {
+                showToast('面板正在重启，请稍后刷新', 'warning');
+                setTimeout(() => location.reload(), 8000);
+            }
+        }
+        async function doUpdateAgent(agentId) {
+            const name = (agents.find(x => x.id === agentId) || {}).name || agentId;
+            if (!confirm('将更新节点 ' + name + ' 并重启 Agent。继续？')) return;
+            try {
+                const res = await fetch(`/api/agents/${agentId}/update`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    const v = (data.data && data.data.version) ? data.data.version : '';
+                    showToast('节点开始更新' + (v ? '到 ' + v : '') + '，几秒后会重连', 'success');
+                } else {
+                    showToast('更新失败: ' + (data.message || ''), 'error');
+                }
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
         async function showNotifyModal() {
             document.getElementById('notifyModal').classList.add('active');
             try {
@@ -3853,7 +3937,7 @@ async function createInstance(e) {
         // 点击模态框外部关闭
         // 修复：点击模态框外部关闭
         (function() {
-            const modals = ['editNoteModal', 'editInstanceModal', 'addInstanceModal', 'addAgentModal', 'editAgentModal', 'agentInfoModal', 'addServerModal', 'changePasswordModal', 'notifyModal', 'unlockModal'];
+            const modals = ['editNoteModal', 'editInstanceModal', 'addInstanceModal', 'addAgentModal', 'editAgentModal', 'agentInfoModal', 'addServerModal', 'changePasswordModal', 'notifyModal', 'unlockModal', 'updateModal'];
             
             // 为每个模态框添加点击事件
             modals.forEach(modalId => {
@@ -3890,7 +3974,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">26.1.20</p>
+        <p style="color: var(--primary); margin: 0;">26.1.21</p>
     </div>
 </div>
 

@@ -113,6 +113,9 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/api/settings", get(get_settings).post(save_settings_api))
         .route("/api/settings/telegram/test", post(test_telegram))
+        .route("/api/update/check", get(update_check))
+        .route("/api/update/manager", post(update_manager))
+        .route("/api/agents/:id/update", post(update_agent_bin))
         .layer(CorsLayer::permissive())
         .with_state(state)
 }
@@ -719,6 +722,57 @@ async fn save_settings_api(
     }
     match st.storage.save_settings(s).await {
         Ok(()) => Json(ApiResponse::<()>::msg(true, "已保存")).into_response(),
+        Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
+    }
+}
+
+async fn update_check(State(st): State<AppState>, headers: HeaderMap) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    let current = crate::updater::current_version();
+    match crate::updater::fetch_latest().await {
+        Ok(rel) => Json(ApiResponse::ok(serde_json::json!({
+            "current": current,
+            "latest": rel.version,
+            "tag": rel.tag,
+            "update_available": crate::updater::is_newer(&rel.version, current),
+            "notes": rel.notes,
+            "html_url": rel.html_url,
+        })))
+        .into_response(),
+        Err(e) => Json(ApiResponse::<()>::msg(false, format!("检查更新失败: {e}"))).into_response(),
+    }
+}
+
+async fn update_manager(State(st): State<AppState>, headers: HeaderMap) -> Response {
+    let user = match require_user(&st, &headers).await {
+        Ok(u) => u,
+        Err(r) => return r,
+    };
+    if user.role != "Admin" {
+        return Json(ApiResponse::<()>::msg(false, "仅管理员可以更新面板")).into_response();
+    }
+    match crate::updater::apply_manager().await {
+        Ok(v) => Json(ApiResponse::<()>::msg(
+            true,
+            format!("已下载 {v}，面板即将重启，请约 8 秒后刷新页面"),
+        ))
+        .into_response(),
+        Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
+    }
+}
+
+async fn update_agent_bin(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Response {
+    if let Err(r) = require_user(&st, &headers).await {
+        return r;
+    }
+    match st.hub.command(&id, "self_update", None, None, None).await {
+        Ok(m) => unwrap_response(m),
         Err(e) => Json(ApiResponse::<()>::msg(false, e.to_string())).into_response(),
     }
 }

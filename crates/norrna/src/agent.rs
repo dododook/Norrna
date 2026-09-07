@@ -650,6 +650,10 @@ async fn handle_cmd(
             (_, None) => err_json("Missing note parameter".into()),
             (None, _) => err_json("Missing instance_id parameter".into()),
         },
+        "self_update" => match crate::updater::apply_agent().await {
+            Ok(v) => ok_json("updating", serde_json::json!({ "version": v })),
+            Err(e) => err_json(e.to_string()),
+        },
         "unlock_check" => {
             let proxy = match instance_id {
                 Some(id) => match agent.unlock_proxy_addr(&id).await {
