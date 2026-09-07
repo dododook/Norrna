@@ -1700,7 +1700,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
     </div>
 
     <div id="updateModal" class="modal">
-        <div class="modal-content" style="max-width:520px;">
+        <div class="modal-content" style="max-width:560px;">
             <div class="modal-header">
                 <h3>检查更新</h3>
                 <button class="close-btn" onclick="closeUpdateModal()">×</button>
@@ -1708,6 +1708,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
             <div id="updateBody" style="padding:4px 0 12px;">正在检查 GitHub Release…</div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="loadUpdateInfo()">重新检查</button>
+                <button type="button" class="btn btn-secondary" id="btnUpdateAllAgents" onclick="doUpdateAllAgents()" style="display:none;">全部更新节点</button>
                 <button type="button" class="btn btn-primary" id="btnUpdateManager" onclick="doUpdateManager()" style="display:none;">更新面板</button>
             </div>
         </div>
@@ -3586,9 +3587,12 @@ async function createInstance(e) {
         async function loadUpdateInfo() {
             const body = document.getElementById('updateBody');
             const btn = document.getElementById('btnUpdateManager');
+            const btnAll = document.getElementById('btnUpdateAllAgents');
             body.textContent = '正在检查 GitHub Release…';
             btn.style.display = 'none';
+            btnAll.style.display = 'none';
             try {
+                await loadAgents();
                 const res = await fetch('/api/update/check');
                 const data = await res.json();
                 if (!data.success) {
@@ -3596,16 +3600,44 @@ async function createInstance(e) {
                     return;
                 }
                 const s = data.data || {};
-                let html = `<p>当前版本 <strong>${escapeHtml(s.current || '')}</strong></p>
-                    <p style="margin-top:8px;">GitHub 最新 <strong>${escapeHtml(s.latest || '')}</strong> ${s.tag ? '(' + escapeHtml(s.tag) + ')' : ''}</p>`;
+                let html = `<div style="padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+                    <div style="font-size:13px;color:#64748b;margin-bottom:6px;">面板</div>
+                    <div>当前 <strong>${escapeHtml(s.current || '')}</strong>　最新 <strong>${escapeHtml(s.latest || '')}</strong></div>`;
                 if (s.update_available) {
-                    html += '<p style="margin-top:10px;color:#059669;">有新版本：点「更新面板」。节点点左侧「更新」。Realm 内核点「更新内核」（官方 zhboner/realm 最新版）。</p>';
+                    html += '<div style="margin-top:8px;color:#059669;font-size:13px;">有新版本，点右下角「更新面板」。</div>';
                     btn.style.display = 'inline-flex';
                 } else {
-                    html += '<p style="margin-top:10px;color:#6b7280;">已是最新版本。</p>';
+                    html += '<div style="margin-top:8px;color:#94a3b8;font-size:13px;">面板已是最新。</div>';
                 }
-                if (s.notes) {
-                    html += '<pre style="margin-top:12px;max-height:160px;overflow:auto;background:#f8f9fa;padding:10px;border-radius:8px;font-size:12px;white-space:pre-wrap;">' + escapeHtml(s.notes) + '</pre>';
+                html += '</div>';
+
+                html += '<div style="font-size:13px;color:#64748b;margin:16px 0 8px;">节点 Agent</div>';
+                if (!agents.length) {
+                    html += '<p style="color:#94a3b8;font-size:13px;">还没有 Agent。</p>';
+                } else {
+                    html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+                    agents.forEach(a => {
+                        const online = a.status === 'online';
+                        const st = online
+                            ? '<span style="color:#059669;font-size:12px;">在线</span>'
+                            : '<span style="color:#94a3b8;font-size:12px;">离线</span>';
+                        const realm = a.realm_version ? escapeHtml(a.realm_version) : 'Realm 未知';
+                        const btns = online
+                            ? `<button type="button" class="btn btn-primary btn-sm" onclick="doUpdateAgent('${a.id}')">更新节点</button>
+                               <button type="button" class="btn btn-secondary btn-sm" onclick="doUpdateRealm('${a.id}')">更新内核</button>`
+                            : '<span style="font-size:12px;color:#94a3b8;">上线后可更新</span>';
+                        html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #e2e8f0;border-radius:12px;">
+                            <div style="min-width:0;">
+                                <div style="font-weight:650;">${escapeHtml(a.name || '')} ${st}</div>
+                                <div style="font-size:12px;color:#64748b;margin-top:2px;">${realm}</div>
+                            </div>
+                            <div style="display:flex;gap:6px;flex-shrink:0;">${btns}</div>
+                        </div>`;
+                    });
+                    html += '</div>';
+                    if (agents.some(a => a.status === 'online')) {
+                        btnAll.style.display = 'inline-flex';
+                    }
                 }
                 body.innerHTML = html;
             } catch (e) {
@@ -3659,6 +3691,27 @@ async function createInstance(e) {
                 }
             } catch (e) {
                 showToast(e.message, 'error');
+            }
+        }
+        async function doUpdateAllAgents() {
+            const list = (agents || []).filter(a => a.status === 'online');
+            if (!list.length) {
+                showToast('没有在线节点', 'error');
+                return;
+            }
+            if (!confirm('将更新 ' + list.length + ' 个在线节点并重启 Agent。继续？')) return;
+            for (const a of list) {
+                try {
+                    const res = await fetch(`/api/agents/${a.id}/update`, { method: 'POST' });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast((a.name || a.id) + ' 已开始更新', 'success');
+                    } else {
+                        showToast((a.name || a.id) + ': ' + (data.message || '失败'), 'error');
+                    }
+                } catch (e) {
+                    showToast((a.name || a.id) + ': ' + e.message, 'error');
+                }
             }
         }
 
@@ -4003,7 +4056,7 @@ async function createInstance(e) {
 <div style="text-align: center; margin-top: 30px;">
     <div style="color: #a0aec0; font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">26.1.23</p>
+        <p style="color: var(--primary); margin: 0;">26.1.24</p>
     </div>
 </div>
 
