@@ -11,10 +11,10 @@
         (function () {
             try {
                 var t = localStorage.getItem('norrna-theme');
-                if (t !== 'dark' && t !== 'light') t = 'light';
+                if (t !== 'dark' && t !== 'light') t = 'dark';
                 document.documentElement.setAttribute('data-theme', t);
             } catch (e) {
-                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.setAttribute('data-theme', 'dark');
             }
         })();
     </script>
@@ -201,8 +201,10 @@ void main() {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background-color: var(--bg-body);
             color: var(--text-dark);
-            min-height: 100vh;
-            padding: 20px;
+            min-height: 100svh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 20px 0;
         }
 
         html[data-theme="dark"] body {
@@ -245,8 +247,12 @@ void main() {
             position: relative;
             z-index: 1;
             max-width: 1400px;
+            width: 100%;
             margin: 0 auto;
-            padding-bottom: 10px;
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
 
         /* --- Header --- */
@@ -314,25 +320,146 @@ void main() {
         }
 
         .theme-toggle-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             width: 36px;
             min-width: 36px;
             height: 36px;
-            padding: 0;
+            padding: 0 !important;
+            line-height: 0;
+            font-size: 0;
         }
         .theme-toggle-btn svg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
             width: 18px;
             height: 18px;
+            margin: 0;
+            transform: translate(-50%, -50%);
             display: none;
-            flex-shrink: 0;
         }
         html:not([data-theme="dark"]) .theme-toggle-btn .icon-sun { display: block; }
         html[data-theme="dark"] .theme-toggle-btn .icon-moon { display: block; }
+
+        .user-avatar-btn {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            padding: 0 !important;
+            border-radius: 50%;
+            border: 1px solid var(--header-btn-border);
+            background: transparent;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .user-avatar-btn:hover { transform: translateY(-1px); }
+        .user-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0;
+            line-height: 1;
+            user-select: none;
+        }
+        .user-avatar svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        #user-pop {
+            position: fixed;
+            z-index: 10000;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: var(--shadow-pop);
+            min-width: 240px;
+            max-width: 280px;
+            display: none;
+        }
+        html[data-theme="dark"] #user-pop {
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+        #user-pop.active { display: block; }
+        #user-pop .user-pop-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        #user-pop .user-pop-head .user-avatar {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+        }
+        #user-pop .user-pop-name {
+            font-weight: 700;
+            color: var(--text-dark);
+            font-size: 14px;
+            word-break: break-all;
+        }
+        #user-pop .pop-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        #user-pop .pop-actions .btn { width: 100%; justify-content: center; }
+        #user-pop .pop-actions .btn-danger { grid-column: 1 / -1; }
+        #user-pop .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        #user-pop .avatar-choice {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            padding: 0;
+            cursor: pointer;
+            overflow: hidden;
+            background: transparent;
+        }
+        #user-pop .avatar-choice.active,
+        #user-pop .avatar-choice:hover {
+            border-color: var(--accent);
+        }
+        #user-pop .avatar-choice .user-avatar {
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
 
         /* --- Layout --- */
         .main-content {
             display: grid;
             grid-template-columns: 300px 1fr;
             gap: 24px;
+            flex: 1 1 auto;
+            min-height: 0;
+            align-items: stretch;
         }
 
         @media (max-width: 1024px) {
@@ -362,11 +489,7 @@ void main() {
 
             .user-info {
                 width: 100%;
-                justify-content: space-between;
-            }
-
-            .username {
-                font-size: 12px;
+                justify-content: flex-end;
             }
 
             .header-btn {
@@ -541,8 +664,8 @@ void main() {
             border-radius: 16px;
             padding: 24px;
             box-shadow: var(--shadow-card);
-            max-height: calc(100vh - 150px);
-            overflow-y: auto; /* 允许滚动 */
+            max-height: none;
+            overflow-y: auto;
             border: 1px solid var(--border-color);
         }
         html[data-theme="dark"] .servers-sidebar,
@@ -920,8 +1043,10 @@ void main() {
             border-radius: 16px;
             padding: 30px;
             box-shadow: var(--shadow-card);
-            min-height: 800px;
+            min-height: 0;
             border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
         }
 
         .panel-header {
@@ -1669,7 +1794,9 @@ void main() {
         .site-footer {
             position: relative;
             z-index: 1;
-            padding: 20px 24px 8px;
+            flex-shrink: 0;
+            margin-top: auto;
+            padding: 20px 24px 24px;
             text-align: center;
             font-size: 12px;
             letter-spacing: .14em;
@@ -1701,7 +1828,6 @@ void main() {
                 <h1><span class="shiny">NORRNA</span></h1>
             </div>
             <div class="user-info">
-                <span class="username" id="currentUsername"></span>
                 <button type="button" class="header-btn theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="切换到深色" aria-label="切换主题">
                     <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="12" cy="12" r="4"></circle>
@@ -1711,10 +1837,9 @@ void main() {
                         <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"></path>
                     </svg>
                 </button>
-                <button class="header-btn" onclick="showUpdateModal()">检查更新</button>
-                <button class="header-btn" onclick="showNotifyModal()">通知设置</button>
-                <button class="header-btn" onclick="showChangePasswordModal()">修改密码</button>
-                <button class="header-btn" onclick="logout()">登出</button>
+                <button type="button" class="user-avatar-btn" id="userAvatarBtn" onclick="toggleUserMenu(event)" title="账户" aria-label="账户菜单">
+                    <span class="user-avatar" id="userAvatar"></span>
+                </button>
             </div>
         </div>
 
@@ -2220,6 +2345,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
     <div id="global-tooltip"></div>
     <div id="agent-pop"></div>
     <div id="inst-pop"></div>
+    <div id="user-pop"></div>
 
     <div id="toast" class="toast">
         <span class="toast-icon" id="toastIcon"></span>
@@ -2241,6 +2367,115 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
             applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
         }
         applyTheme(currentTheme());
+
+        const AVATAR_ICONS = {
+            user: '<circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path>',
+            smile: '<circle cx="12" cy="12" r="9"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><circle cx="9" cy="10" r="1" fill="currentColor"></circle><circle cx="15" cy="10" r="1" fill="currentColor"></circle>',
+            star: '<polygon points="12 3 14.5 8.8 21 9.3 16.2 13.5 17.6 20 12 16.8 6.4 20 7.8 13.5 3 9.3 9.5 8.8"></polygon>',
+            zap: '<polygon points="13 2 4 14 12 14 11 22 20 10 12 10 13 2"></polygon>',
+            rocket: '<path d="M5 15s1-3 6-8 8-6 8-6-1 3-6 8-8 6-8 6z"></path><path d="M9 11l4 4"></path><path d="M5 15l-2 6 6-2"></path>',
+            heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.6-7 10-7 10z"></path>',
+            leaf: '<path d="M5 19c8-1 13-8 14-16-8 1-13 8-14 16z"></path><path d="M8 12c2 2 5 4 8 5"></path>',
+            gem: '<path d="M6 9l6-6 6 6-6 12L6 9z"></path><path d="M6 9h12"></path>',
+            moon: '<path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"></path>'
+        };
+        const AVATAR_PRESETS = [
+            { id: 'init', bg: '' },
+            { id: 'user', bg: '#6366f1', icon: 'user' },
+            { id: 'smile', bg: '#f59e0b', icon: 'smile' },
+            { id: 'star', bg: '#eab308', icon: 'star' },
+            { id: 'zap', bg: '#06b6d4', icon: 'zap' },
+            { id: 'rocket', bg: '#8b5cf6', icon: 'rocket' },
+            { id: 'heart', bg: '#f43f5e', icon: 'heart' },
+            { id: 'leaf', bg: '#10b981', icon: 'leaf' },
+            { id: 'gem', bg: '#3b82f6', icon: 'gem' },
+            { id: 'moon', bg: '#64748b', icon: 'moon' }
+        ];
+
+        function currentUsername() {
+            return (currentUser && currentUser.username) || 'admin';
+        }
+        function getAvatarId() {
+            try {
+                const id = localStorage.getItem('norrna-avatar');
+                if (id && AVATAR_PRESETS.some(p => p.id === id)) return id;
+            } catch (e) {}
+            return 'init';
+        }
+        function initialsColor(name) {
+            let h = 0;
+            const s = String(name || 'A');
+            for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+            return 'hsl(' + (h % 360) + ', 62%, 42%)';
+        }
+        function avatarHTML(id, name) {
+            const preset = AVATAR_PRESETS.find(p => p.id === id) || AVATAR_PRESETS[0];
+            const letter = (name || 'A').trim().charAt(0).toUpperCase() || 'A';
+            if (preset.id === 'init') {
+                return '<span class="user-avatar" style="background:' + initialsColor(name) + '">' + escapeHtml(letter) + '</span>';
+            }
+            return '<span class="user-avatar" style="background:' + preset.bg + '"><svg viewBox="0 0 24 24">' + (AVATAR_ICONS[preset.icon] || '') + '</svg></span>';
+        }
+        function renderHeaderAvatar() {
+            const el = document.getElementById('userAvatar');
+            if (!el) return;
+            const wrap = document.createElement('div');
+            wrap.innerHTML = avatarHTML(getAvatarId(), currentUsername());
+            const inner = wrap.firstElementChild;
+            if (!inner) return;
+            el.replaceWith(inner);
+            inner.id = 'userAvatar';
+        }
+        function closeUserMenu() {
+            const pop = document.getElementById('user-pop');
+            if (pop) pop.classList.remove('active');
+        }
+        function setAvatarId(id) {
+            try { localStorage.setItem('norrna-avatar', id); } catch (e) {}
+            renderHeaderAvatar();
+            const btn = document.getElementById('userAvatarBtn');
+            if (btn) toggleUserMenu({ currentTarget: btn, stopPropagation: function () {} }, true);
+        }
+        function toggleUserMenu(event, keepOpen) {
+            if (event && event.stopPropagation) event.stopPropagation();
+            closeInstanceMenu();
+            const agentPop = document.getElementById('agent-pop');
+            if (agentPop) agentPop.classList.remove('active');
+            const pop = document.getElementById('user-pop');
+            const btn = (event && event.currentTarget) || document.getElementById('userAvatarBtn');
+            if (!pop || !btn) return;
+            if (!keepOpen && pop.classList.contains('active')) {
+                pop.classList.remove('active');
+                return;
+            }
+            const name = currentUsername();
+            const cur = getAvatarId();
+            pop.innerHTML = `
+                <div class="user-pop-head">
+                    ${avatarHTML(cur, name)}
+                    <div class="user-pop-name">${escapeHtml(name)}</div>
+                </div>
+                <div class="avatar-grid">
+                    ${AVATAR_PRESETS.map(p => `<button type="button" class="avatar-choice${p.id === cur ? ' active' : ''}" onclick="setAvatarId('${p.id}')" title="${p.id === 'init' ? '首字母' : p.id}">${avatarHTML(p.id, name)}</button>`).join('')}
+                </div>
+                <div class="pop-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="closeUserMenu(); showUpdateModal()">检查更新</button>
+                    <button class="btn btn-secondary btn-sm" onclick="closeUserMenu(); showNotifyModal()">通知设置</button>
+                    <button class="btn btn-secondary btn-sm" onclick="closeUserMenu(); showChangePasswordModal()">修改密码</button>
+                    <button class="btn btn-danger btn-sm" onclick="closeUserMenu(); logout()">登出</button>
+                </div>`;
+            pop.classList.add('active');
+            const rect = btn.getBoundingClientRect();
+            const w = Math.min(pop.offsetWidth || 260, 280);
+            const h = pop.offsetHeight || 320;
+            let left = rect.right - w;
+            let top = rect.bottom + 8;
+            if (left < 12) left = 12;
+            if (left + w > window.innerWidth - 12) left = window.innerWidth - w - 12;
+            if (top + h > window.innerHeight - 12) top = Math.max(12, rect.top - h - 8);
+            pop.style.top = top + 'px';
+            pop.style.left = left + 'px';
+        }
 
         // ============================================
         // 全局服务器信息
@@ -2308,6 +2543,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
         let probeResults = {};
         let instances = [];
         let currentUser = null;
+        renderHeaderAvatar();
         let viewMode = 'agents';
         let autoRefreshInterval = null;
         let lastInstancesData = null;
@@ -2504,8 +2740,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                 const user = result.user || result.data;
                 if (result.success && user && user.username) {
                     currentUser = user;
-                    const el = document.getElementById('currentUsername');
-                    if (el) el.textContent = user.username;
+                    renderHeaderAvatar();
                 }
             } catch (error) {
                 console.error('Auth error:', error);
@@ -3994,6 +4229,7 @@ async function createInstance(e) {
 
         function toggleInstanceMenu(event, agentId, instanceId) {
             event.stopPropagation();
+            closeUserMenu();
             const pop = document.getElementById('inst-pop');
             if (!pop) return;
             const key = agentId + ':' + instanceId;
@@ -4032,6 +4268,7 @@ async function createInstance(e) {
         function toggleAgentDetails(event, agentId) {
             event.stopPropagation();
             closeInstanceMenu();
+            closeUserMenu();
             const pop = document.getElementById('agent-pop');
             if (pop.classList.contains('active') && pop.dataset.id === agentId) {
                 pop.classList.remove('active');
@@ -4060,12 +4297,21 @@ async function createInstance(e) {
                     <button class="btn btn-danger btn-sm" onclick="deleteAgent('${a.id}')">删除</button>
                 </div>`;
             pop.classList.add('active');
-            const rect = event.currentTarget.getBoundingClientRect();
-            let top = rect.bottom + 8;
-            let left = rect.right - 260;
+            const card = event.currentTarget.closest('.server-card') || event.currentTarget;
+            const rect = card.getBoundingClientRect();
+            const gap = 10;
+            const popW = Math.min(pop.offsetWidth || 280, 280);
+            const popH = pop.offsetHeight || 360;
+            let left = rect.right + gap;
+            let top = rect.top;
+            if (left + popW > window.innerWidth - 12) {
+                left = rect.left - popW - gap;
+            }
             if (left < 12) left = 12;
-            if (left + 280 > window.innerWidth - 12) left = window.innerWidth - 292;
-            if (top + 360 > window.innerHeight - 12) top = Math.max(12, rect.top - 8 - 320);
+            if (top + popH > window.innerHeight - 12) {
+                top = Math.max(12, window.innerHeight - popH - 12);
+            }
+            if (top < 12) top = 12;
             pop.style.top = top + 'px';
             pop.style.left = left + 'px';
         }
@@ -4078,6 +4324,11 @@ async function createInstance(e) {
             const instPop = document.getElementById('inst-pop');
             if (instPop && instPop.classList.contains('active') && !instPop.contains(e.target)) {
                 closeInstanceMenu();
+            }
+            const userPop = document.getElementById('user-pop');
+            const avatarBtn = document.getElementById('userAvatarBtn');
+            if (userPop && userPop.classList.contains('active') && !userPop.contains(e.target) && !(avatarBtn && avatarBtn.contains(e.target))) {
+                closeUserMenu();
             }
         });
 
@@ -4659,7 +4910,7 @@ async function createInstance(e) {
         })();
     </script>
     
-<footer class="site-footer">© 2026 Norrna · 26.1.31</footer>
+<footer class="site-footer">© 2026 Norrna · 26.1.32</footer>
 
     <script>
         // === 广告随机展示脚本 ===

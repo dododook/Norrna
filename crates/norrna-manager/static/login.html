@@ -11,10 +11,10 @@
         (function () {
             try {
                 var t = localStorage.getItem('norrna-theme');
-                if (t !== 'dark' && t !== 'light') t = 'light';
+                if (t !== 'dark' && t !== 'light') t = 'dark';
                 document.documentElement.setAttribute('data-theme', t);
             } catch (e) {
-                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.setAttribute('data-theme', 'dark');
             }
         })();
     </script>
@@ -150,10 +150,20 @@ void main() {
             position: fixed; top: 20px; right: 20px; z-index: 2;
             width: 36px; height: 36px; padding: 0; border-radius: 8px; cursor: pointer;
             display: inline-flex; align-items: center; justify-content: center;
+            line-height: 0; font-size: 0;
             background: var(--bg-card); color: var(--text-dark);
             border: 1px solid var(--border-color);
         }
-        .theme-toggle svg { width: 18px; height: 18px; display: none; }
+        .theme-toggle svg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
         html:not([data-theme="dark"]) .theme-toggle .icon-sun { display: block; }
         html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 
