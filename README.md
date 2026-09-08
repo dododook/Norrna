@@ -53,7 +53,7 @@ Agent 卡片 **解锁**：测这台机器自己的网卡出口。落地机请把
 
 转发列表 **落地解锁**：仅当远程是 HTTP/SOCKS 代理时可用。普通 TCP 转发（Realm listen→remote）无法经隧道测 Netflix，请在落地安装 Agent 后点「解锁」。
 
-右上角 **通知设置** 可填 Telegram Bot Token 和 Chat ID。Agent 离线、月流量超过编辑里填的限额时会推送到 TG。流量按节点网卡累计，每月自动清零。
+右上角可切换 **浅色 / 深色** 主题（保存在浏览器里）。**通知设置** 可填 Telegram Bot Token 和 Chat ID。Agent 离线、月流量超过编辑里填的限额时会推送到 TG。流量按节点网卡累计，每月自动清零。
 
 ---
 

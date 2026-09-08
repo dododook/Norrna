@@ -4,16 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - NORRNA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('norrna-theme');
+                if (t !== 'dark' && t !== 'light') t = 'light';
+                document.documentElement.setAttribute('data-theme', t);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
     <style>
         :root {
+            color-scheme: light;
             --primary: #171717;
             --primary-hover: #262626;
+            --on-primary: #ffffff;
             --text-dark: #1a202c;
             --text-gray: #718096;
             --bg-body: #fafafa;
+            --bg-card: #ffffff;
+            --bg-muted: #f8fafc;
             --border-color: #e2e8f0;
             --danger: #ef4444;
             --success: #10b981;
+            --danger-bg: #fef2f2;
+            --success-bg: #ecfdf5;
+            --input-bg: #fff;
+            --focus-ring: rgba(23, 23, 23, 0.1);
+        }
+        html[data-theme="dark"] {
+            color-scheme: dark;
+            --primary: #f5f4f0;
+            --primary-hover: #ffffff;
+            --on-primary: #080808;
+            --text-dark: #f5f4f0;
+            --text-gray: rgba(245, 244, 240, 0.62);
+            --bg-body: #050505;
+            --bg-card: rgba(255, 255, 255, 0.045);
+            --bg-muted: rgba(255, 255, 255, 0.04);
+            --border-color: rgba(255, 255, 255, 0.09);
+            --danger: #f87171;
+            --success: #34d399;
+            --danger-bg: rgba(248, 113, 113, 0.14);
+            --success-bg: rgba(52, 211, 153, 0.14);
+            --input-bg: rgba(255, 255, 255, 0.04);
+            --focus-ring: rgba(107, 142, 245, 0.25);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
@@ -28,15 +68,43 @@
             padding: 20px;
             color: var(--text-dark);
         }
+        html[data-theme="dark"] body {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background-image:
+                radial-gradient(900px 420px at 12% -8%, rgba(107, 142, 245, 0.22), transparent 60%),
+                radial-gradient(820px 380px at 92% 0%, rgba(167, 139, 250, 0.16), transparent 55%),
+                radial-gradient(640px 420px at 50% 110%, rgba(52, 211, 153, 0.08), transparent 55%);
+        }
+        .theme-grain {
+            display: none;
+        }
+        html[data-theme="dark"] .theme-grain {
+            display: block;
+            position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.04;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            background-size: 180px 180px;
+        }
+        .theme-toggle {
+            position: fixed; top: 20px; right: 20px; z-index: 2;
+            padding: 8px 14px; border-radius: 8px; cursor: pointer;
+            background: var(--bg-card); color: var(--text-dark);
+            border: 1px solid var(--border-color); font-size: 13px; font-weight: 600;
+        }
 
         .login-card {
-            background: white;
+            position: relative; z-index: 1;
+            background: var(--bg-card);
             width: 100%;
             max-width: 380px;
             padding: 40px;
             border-radius: 16px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             border: 1px solid var(--border-color);
+        }
+        html[data-theme="dark"] .login-card {
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            box-shadow: 0 24px 70px rgba(0,0,0,.4);
         }
 
         .header {
@@ -75,20 +143,21 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             font-size: 14px;
-            background: #fff;
+            background: var(--input-bg);
+            color: var(--text-dark);
             transition: all 0.2s;
         }
 
         .form-group input:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.1);
+            box-shadow: 0 0 0 3px var(--focus-ring);
         }
 
         .btn-login {
             width: 100%;
             padding: 12px;
             background: var(--primary);
-            color: white;
+            color: var(--on-primary);
             border: none;
             border-radius: 8px;
             font-size: 14px;
@@ -117,19 +186,19 @@
         }
 
         .message.error {
-            background: #fef2f2;
+            background: var(--danger-bg);
             color: var(--danger);
-            border: 1px solid #fee2e2;
+            border: 1px solid var(--border-color);
         }
 
         .message.success {
-            background: #ecfdf5;
+            background: var(--success-bg);
             color: var(--success);
-            border: 1px solid #d1fae5;
+            border: 1px solid var(--border-color);
         }
 
         .spinner {
-            border: 2px solid #f3f4f6;
+            border: 2px solid var(--border-color);
             border-top: 2px solid var(--primary);
             border-radius: 50%;
             width: 20px;
@@ -143,6 +212,8 @@
     </style>
 </head>
 <body>
+    <div class="theme-grain" aria-hidden="true"></div>
+    <button type="button" class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()">深色</button>
     <div class="login-card">
         <div class="header">
             <h1>NORRNA</h1>
@@ -169,6 +240,21 @@
     </div>
 
     <script>
+        function currentTheme() {
+            return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        }
+        function applyTheme(theme) {
+            const t = theme === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', t);
+            try { localStorage.setItem('norrna-theme', t); } catch (e) {}
+            const btn = document.getElementById('themeToggleBtn');
+            if (btn) btn.textContent = t === 'dark' ? '浅色' : '深色';
+        }
+        function toggleTheme() {
+            applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+        }
+        applyTheme(currentTheme());
+
         // 检查初始化状态
         window.addEventListener('load', async () => {
             try {

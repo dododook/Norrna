@@ -4,25 +4,131 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NORRNA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('norrna-theme');
+                if (t !== 'dark' && t !== 'light') t = 'light';
+                document.documentElement.setAttribute('data-theme', t);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
     <style>
         :root {
-            /* --- 核心配色 --- */
-            --primary: #171717;            /* 主色：碳黑 */
-            --primary-hover: #262626;      /* 悬停：深灰 */
-            --primary-light: rgba(23, 23, 23, 0.05); /* 选中背景：极淡灰 */
-            
-            --text-dark: #1a202c;          /* 文字颜色加深 */
+            color-scheme: light;
+            --primary: #171717;
+            --primary-hover: #262626;
+            --primary-light: rgba(23, 23, 23, 0.05);
+            --on-primary: #ffffff;
+            --text-dark: #1a202c;
             --text-gray: #718096;
-            --bg-gray: #f8f9fa;            /* 背景冷灰 */
+            --text-faint: #9ca3af;
+            --bg-body: #fafafa;
+            --bg-card: #ffffff;
+            --bg-muted: #f8fafc;
+            --bg-hover: #f9fafb;
+            --bg-gray: #f8f9fa;
             --border-color: #e2e8f0;
-            
-            /* 状态色 */
-            --success: #10b981;            /* 翠绿色 */
+            --border-strong: #cbd5e0;
+            --border-subtle: #f3f4f6;
+            --success: #10b981;
+            --success-hover: #059669;
             --success-bg: #ecfdf5;
-            --danger: #ef4444;             /* 亮红色 */
+            --danger: #ef4444;
             --danger-bg: #fef2f2;
+            --danger-soft: #fff1f2;
             --warning: #f59e0b;
             --warning-bg: #fffbeb;
+            --warning-soft: #fef3c7;
+            --warning-text: #b45309;
+            --warning-hover: #fde68a;
+            --btn-secondary-bg: #f3f4f6;
+            --btn-secondary-fg: #374151;
+            --code-bg: #f1f5f9;
+            --code-fg: #334155;
+            --input-bg: #fafafa;
+            --input-focus-bg: #ffffff;
+            --focus-ring: rgba(23, 23, 23, 0.1);
+            --shadow-card: 0 4px 6px -1px rgba(0,0,0,0.02);
+            --shadow-pop: 0 12px 32px rgba(0,0,0,0.14);
+            --header-bg: linear-gradient(135deg, #171717 0%, #2d2d2d 100%);
+            --header-fg: #ffffff;
+            --header-muted: rgba(255, 255, 255, 0.6);
+            --header-btn-bg: rgba(255,255,255,0.15);
+            --header-btn-border: rgba(255,255,255,0.2);
+            --header-btn-hover-bg: #ffffff;
+            --header-btn-hover-fg: #171717;
+            --switch-track: #d1d5db;
+            --switch-knob: #ffffff;
+            --probe-good: #059669;
+            --probe-warn: #d97706;
+            --probe-bad: #dc2626;
+            --overlay: rgba(0, 0, 0, 0.5);
+            --command-bg: #1e293b;
+            --command-fg: #e2e8f0;
+            --command-border: #334155;
+            --accent: #6b8ef5;
+            --accent-2: #a78bfa;
+        }
+
+        html[data-theme="dark"] {
+            color-scheme: dark;
+            --primary: #f5f4f0;
+            --primary-hover: #ffffff;
+            --primary-light: rgba(107, 142, 245, 0.14);
+            --on-primary: #080808;
+            --text-dark: #f5f4f0;
+            --text-gray: rgba(245, 244, 240, 0.62);
+            --text-faint: rgba(245, 244, 240, 0.34);
+            --bg-body: #050505;
+            --bg-card: rgba(255, 255, 255, 0.045);
+            --bg-muted: rgba(255, 255, 255, 0.04);
+            --bg-hover: rgba(255, 255, 255, 0.075);
+            --bg-gray: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(255, 255, 255, 0.09);
+            --border-strong: rgba(255, 255, 255, 0.18);
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --success: #34d399;
+            --success-hover: #10b981;
+            --success-bg: rgba(52, 211, 153, 0.14);
+            --danger: #f87171;
+            --danger-bg: rgba(248, 113, 113, 0.14);
+            --danger-soft: rgba(248, 113, 113, 0.12);
+            --warning: #fbbf24;
+            --warning-bg: rgba(251, 191, 36, 0.14);
+            --warning-soft: rgba(251, 191, 36, 0.16);
+            --warning-text: #fbbf24;
+            --warning-hover: rgba(251, 191, 36, 0.28);
+            --btn-secondary-bg: rgba(255, 255, 255, 0.06);
+            --btn-secondary-fg: rgba(245, 244, 240, 0.78);
+            --code-bg: rgba(255, 255, 255, 0.06);
+            --code-fg: #e4e3df;
+            --input-bg: rgba(255, 255, 255, 0.04);
+            --input-focus-bg: rgba(255, 255, 255, 0.07);
+            --focus-ring: rgba(107, 142, 245, 0.25);
+            --shadow-card: 0 24px 70px rgba(0, 0, 0, 0.4);
+            --shadow-pop: 0 32px 80px rgba(0, 0, 0, 0.55);
+            --header-bg: rgba(255, 255, 255, 0.04);
+            --header-fg: #f5f4f0;
+            --header-muted: rgba(245, 244, 240, 0.5);
+            --header-btn-bg: rgba(255, 255, 255, 0.06);
+            --header-btn-border: rgba(255, 255, 255, 0.12);
+            --header-btn-hover-bg: #f5f4f0;
+            --header-btn-hover-fg: #080808;
+            --switch-track: rgba(255, 255, 255, 0.16);
+            --switch-knob: #f5f4f0;
+            --probe-good: #34d399;
+            --probe-warn: #fbbf24;
+            --probe-bad: #f87171;
+            --overlay: rgba(0, 0, 0, 0.72);
+            --command-bg: rgba(0, 0, 0, 0.45);
+            --command-fg: #e4e3df;
+            --command-border: rgba(255, 255, 255, 0.12);
         }
 
         * {
@@ -34,13 +140,38 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #fafafa;
+            background-color: var(--bg-body);
             color: var(--text-dark);
             min-height: 100vh;
             padding: 20px;
         }
 
+        html[data-theme="dark"] body {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background-image:
+                radial-gradient(900px 420px at 12% -8%, rgba(107, 142, 245, 0.22), transparent 60%),
+                radial-gradient(820px 380px at 92% 0%, rgba(167, 139, 250, 0.16), transparent 55%),
+                radial-gradient(640px 420px at 50% 110%, rgba(52, 211, 153, 0.08), transparent 55%);
+            background-attachment: fixed;
+        }
+
+        .theme-grain {
+            display: none;
+        }
+        html[data-theme="dark"] .theme-grain {
+            display: block;
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.04;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            background-size: 180px 180px;
+        }
+
         .container {
+            position: relative;
+            z-index: 1;
             max-width: 1400px;
             margin: 0 auto;
             padding-bottom: 10px;
@@ -48,7 +179,7 @@
 
         /* --- Header --- */
         .header {
-            background: linear-gradient(135deg, #171717 0%, #2d2d2d 100%);
+            background: var(--header-bg);
             border-radius: 15px;
             padding: 15px 30px 15px 30px;
             margin-bottom: 24px;
@@ -56,10 +187,17 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid transparent;
+        }
+        html[data-theme="dark"] .header {
+            box-shadow: none;
+            border-color: var(--border-color);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
         }
 
         .header h1 {
-            color: #ffffff;
+            color: var(--header-fg);
             font-size: 2em;
             margin-bottom: 6px;
             font-weight: 700;
@@ -67,7 +205,7 @@
         }
 
         .header p {
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--header-muted);
             font-size: 1.05em;
         }
 
@@ -78,7 +216,7 @@
         }
 
         .username {
-            color: #ffffff;
+            color: var(--header-fg);
             font-weight: 600;
             font-size: 1.05em;
             margin-right: 8px;
@@ -86,9 +224,9 @@
 
         .header-btn, .btn-logout {
             padding: 8px 16px;
-            background: rgba(255,255,255,0.15);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.2);
+            background: var(--header-btn-bg);
+            color: var(--header-fg);
+            border: 1px solid var(--header-btn-border);
             border-radius: 8px;
             cursor: pointer;
             font-size: 13px;
@@ -98,8 +236,8 @@
         }
 
         .header-btn:hover, .btn-logout:hover {
-            background: white;
-            color: var(--primary);
+            background: var(--header-btn-hover-bg);
+            color: var(--header-btn-hover-fg);
             transform: translateY(-1px);
         }
 
@@ -170,7 +308,7 @@
                 right: 0;
                 bottom: 0;
                 z-index: 1000;
-                background: white;
+                background: var(--bg-card);
                 padding: 20px 16px;
                 overflow-y: auto;
             }
@@ -192,7 +330,7 @@
                 padding: 8px 16px;
                 margin-bottom: 16px;
                 background: var(--primary);
-                color: white;
+                color: var(--on-primary);
                 border: none;
                 border-radius: 8px;
                 font-size: 14px;
@@ -312,13 +450,23 @@
 
         /* --- Sidebar --- */
         .servers-sidebar {
-            background: white;
+            background: var(--bg-card);
             border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+            box-shadow: var(--shadow-card);
             max-height: calc(100vh - 150px);
             overflow-y: auto; /* 允许滚动 */
             border: 1px solid var(--border-color);
+        }
+        html[data-theme="dark"] .servers-sidebar,
+        html[data-theme="dark"] .instances-panel,
+        html[data-theme="dark"] .modal-content,
+        html[data-theme="dark"] .server-card,
+        html[data-theme="dark"] #agent-pop,
+        html[data-theme="dark"] #inst-pop,
+        html[data-theme="dark"] .toast {
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
         }
 
         .sidebar-header {
@@ -356,8 +504,18 @@
 
         .btn-primary {
             background: var(--primary);
-            color: white;
+            color: var(--on-primary);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-secondary {
+            background: var(--btn-secondary-bg);
+            color: var(--btn-secondary-fg);
+            border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-strong);
         }
 
         .btn-primary:hover {
@@ -367,44 +525,44 @@
         }
 
         #switchViewBtn {
-            background: #e2e8f0;
-            color: #475569;
-            border: 1px solid #cbd5e0;
+            background: var(--btn-secondary-bg);
+            color: var(--btn-secondary-fg);
+            border: 1px solid var(--border-strong);
         }
         #switchViewBtn:hover {
-            background: #cbd5e0;
-            color: #1e293b;
+            background: var(--border-strong);
+            color: var(--text-dark);
         }
 
         .btn-success {
             background: var(--success);
-            color: white;
+            color: #ffffff;
         }
 
         .btn-success:hover {
-            background: #059669;
+            background: var(--success-hover);
             box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
         }
 
         .btn-danger {
-            background: #fff1f2;
+            background: var(--danger-soft);
             color: var(--danger);
             border: 1px solid rgba(239, 68, 68, 0.1);
         }
 
         .btn-danger:hover {
             background: var(--danger);
-            color: white;
+            color: #ffffff;
         }
 
         .btn-warning {
-            background: #fef3c7;
-            color: #b45309;
+            background: var(--warning-soft);
+            color: var(--warning-text);
             border: 1px solid rgba(245, 158, 11, 0.2);
         }
         
         .btn-warning:hover {
-            background: #fde68a;
+            background: var(--warning-hover);
         }
 
         .btn:disabled {
@@ -416,7 +574,7 @@
 
         /* --- Server/Agent Cards --- */
         .server-card {
-            background: white;
+            background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 16px;
@@ -427,7 +585,7 @@
         }
 
         .server-card:hover {
-            border-color: #cbd5e0;
+            border-color: var(--border-strong);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
@@ -455,7 +613,7 @@
 
         .agent-meta {
             font-size: 12px;
-            color: #6b7280;
+            color: var(--text-gray);
             margin: 2px 0 0 2px;
             line-height: 1.45;
             white-space: nowrap;
@@ -493,7 +651,7 @@
             flex-wrap: wrap;
             margin-top: 12px;
             padding-top: 12px;
-            border-top: 1px solid #f3f4f6;
+            border-top: 1px solid var(--border-subtle);
         }
 
         .server-status {
@@ -525,8 +683,8 @@
         }
 
         .status-disconnected, .status-offline {
-            background: #f3f4f6;
-            color: #6b7280;
+            background: var(--bg-muted);
+            color: var(--text-gray);
         }
         
         .status-disconnected::before, .status-offline::before {
@@ -547,11 +705,11 @@
 
         .agent-version {
             font-size: 0.75em;
-            color: #9ca3af;
-            background: #f9fafb;
+            color: var(--text-faint);
+            background: var(--bg-hover);
             padding: 2px 6px;
             border-radius: 4px;
-            border: 1px solid #f3f4f6;
+            border: 1px solid var(--border-subtle);
         }
 
         /* --- Agent 详情弹窗样式 (全局悬浮版) --- */
@@ -564,9 +722,9 @@
         .btn-details {
             padding: 4px 10px;
             font-size: 0.75em;
-            background: white;
-            color: #4b5563;
-            border: 1px solid #e5e7eb;
+            background: var(--bg-card);
+            color: var(--text-gray);
+            border: 1px solid var(--border-color);
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.2s;
@@ -574,8 +732,8 @@
         }
 
         .btn-details:hover {
-            background: #f9fafb;
-            border-color: #d1d5db;
+            background: var(--bg-hover);
+            border-color: var(--border-strong);
             color: var(--text-dark);
         }
 
@@ -583,7 +741,7 @@
         #global-tooltip {
             position: fixed;
             z-index: 9999; /* 最高层级 */
-            background: white;
+            background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 16px;
@@ -609,7 +767,7 @@
             top: 20px;
             width: 10px;
             height: 10px;
-            background: white;
+            background: var(--bg-card);
             border-left: 1px solid var(--border-color);
             border-bottom: 1px solid var(--border-color);
             transform: rotate(45deg);
@@ -631,7 +789,7 @@
         #agent-pop {
             position: fixed;
             z-index: 10000;
-            background: white;
+            background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 14px;
@@ -647,7 +805,7 @@
             gap: 8px;
             margin-top: 12px;
             padding-top: 12px;
-            border-top: 1px solid #f3f4f6;
+            border-top: 1px solid var(--border-subtle);
         }
         #agent-pop .pop-actions .btn {
             width: 100%;
@@ -671,10 +829,10 @@
 
         /* --- Main Panel --- */
         .instances-panel {
-            background: white;
+            background: var(--bg-card);
             border-radius: 16px;
             padding: 30px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+            box-shadow: var(--shadow-card);
             min-height: 800px;
             border: 1px solid var(--border-color);
         }
@@ -724,7 +882,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: var(--overlay);
             backdrop-filter: blur(4px);
             z-index: 1000;
             align-items: center;
@@ -736,7 +894,7 @@
         }
 
         .modal-content {
-            background: white;
+            background: var(--bg-card);
             border-radius: 16px;
             padding: 32px;
             width: 90%;
@@ -764,7 +922,7 @@
             background: none;
             border: none;
             font-size: 1.5em;
-            color: #9ca3af;
+            color: var(--text-faint);
             cursor: pointer;
             padding: 0;
             width: 30px;
@@ -777,7 +935,7 @@
         }
 
         .close-btn:hover {
-            background: #f3f4f6;
+            background: var(--bg-muted);
             color: var(--text-dark);
         }
 
@@ -801,7 +959,8 @@
             border: 2px solid var(--border-color);
             border-radius: 8px;
             font-size: 14px;
-            background: #fafafa;
+            background: var(--input-bg);
+            color: var(--text-dark);
             transition: all 0.2s;
         }
 
@@ -818,7 +977,7 @@
             margin-bottom: 10px;
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            background: #fafafa;
+            background: var(--bg-muted);
         }
         .switch-row .switch-meta {
             display: flex;
@@ -833,7 +992,7 @@
         }
         .switch-row .switch-meta span {
             font-size: 12px;
-            color: #6b7280;
+            color: var(--text-gray);
             font-weight: 400;
             line-height: 1.4;
         }
@@ -851,7 +1010,7 @@
         .switch .slider {
             position: absolute;
             inset: 0;
-            background: #d1d5db;
+            background: var(--switch-track);
             border-radius: 999px;
             cursor: pointer;
             transition: background 0.2s ease;
@@ -863,7 +1022,7 @@
             width: 18px;
             left: 3px;
             top: 3px;
-            background: #fff;
+            background: var(--switch-knob);
             border-radius: 50%;
             transition: transform 0.2s ease;
             box-shadow: 0 1px 3px rgba(0,0,0,0.18);
@@ -879,9 +1038,9 @@
         .form-group textarea:focus,
         .form-group select:focus {
             outline: none;
-            background: white;
+            background: var(--input-focus-bg);
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.1);
+            box-shadow: 0 0 0 3px var(--focus-ring);
         }
 
         .form-group textarea {
@@ -902,7 +1061,7 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            background: white;
+            background: var(--bg-card);
             border-radius: 8px;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
             padding: 16px 24px;
@@ -956,7 +1115,7 @@
         }
 
         .spinner {
-            border: 3px solid #e5e7eb;
+            border: 3px solid var(--border-color);
             border-top: 3px solid var(--primary);
             border-radius: 50%;
             width: 40px;
@@ -972,24 +1131,24 @@
 
         /* --- Code & Misc --- */
         .code {
-            background: #f1f5f9;
+            background: var(--code-bg);
             padding: 3px 6px;
             border-radius: 4px;
             font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
             font-size: 0.85em;
-            color: #334155;
-            border: 1px solid #e2e8f0;
+            color: var(--code-fg);
+            border: 1px solid var(--border-color);
         }
 
         .info-box {
-            background: #f8fafc;
+            background: var(--bg-muted);
             padding: 16px;
             border-radius: 8px;
             margin-bottom: 20px;
         }
 
         .info-box p {
-            color: #4b5563;
+            color: var(--text-gray);
             margin: 8px 0;
             font-size: 0.9em;
         }
@@ -997,8 +1156,8 @@
         .info-box strong { color: var(--text-dark); }
 
         .command-box {
-            background: #1e293b;
-            color: #e2e8f0;
+            background: var(--command-bg);
+            color: var(--command-fg);
             padding: 16px;
             border-radius: 8px;
             font-family: 'SFMono-Regular', Consolas, monospace;
@@ -1007,7 +1166,7 @@
             overflow-x: auto;
             white-space: pre-wrap;
             word-break: break-all;
-            border: 1px solid #334155;
+            border: 1px solid var(--command-border);
         }
 
         /* --- Tables --- */
@@ -1019,7 +1178,7 @@
         }
 
         .instance-table th {
-            background: #f8fafc;
+            background: var(--bg-muted);
             padding: 16px;
             text-align: left;
             color: var(--text-gray);
@@ -1043,7 +1202,7 @@
         }
 
         .instance-table tr:hover td {
-            background: #f9fafb;
+            background: var(--bg-hover);
         }
 
         .status-badge {
@@ -1065,10 +1224,10 @@
             font-weight: 650;
             font-size: 13px;
         }
-        .probe-ms.good { color: #059669; }
-        .probe-ms.warn { color: #d97706; }
-        .probe-ms.bad { color: #dc2626; }
-        .probe-ms.fail { color: #9ca3af; }
+        .probe-ms.good { color: var(--probe-good); }
+        .probe-ms.warn { color: var(--probe-warn); }
+        .probe-ms.bad { color: var(--probe-bad); }
+        .probe-ms.fail { color: var(--text-faint); }
 
         .probe-cell {
             cursor: pointer;
@@ -1095,15 +1254,15 @@
             height: 32px;
             padding: 0;
             border-radius: 8px;
-            background: #f8fafc;
-            color: #475569;
+            background: var(--bg-muted);
+            color: var(--text-gray);
             border: 1px solid var(--border-color);
         }
         .btn-more:hover,
         .btn-more.active {
-            background: #eef2ff;
-            border-color: #c7d2fe;
-            color: var(--primary);
+            background: var(--primary-light);
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
         .instance-table td.col-actions {
@@ -1115,7 +1274,7 @@
         #inst-pop {
             position: fixed;
             z-index: 10000;
-            background: white;
+            background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 10px;
             padding: 6px;
@@ -1138,12 +1297,12 @@
             color: var(--text-dark);
             text-align: left;
         }
-        #inst-pop button:hover { background: #f1f5f9; }
+        #inst-pop button:hover { background: var(--bg-hover); }
         #inst-pop button.danger { color: var(--danger); }
-        #inst-pop button.danger:hover { background: #fff1f2; }
+        #inst-pop button.danger:hover { background: var(--danger-soft); }
         #inst-pop .sep {
             height: 1px;
-            background: #f3f4f6;
+            background: var(--border-subtle);
             margin: 4px 6px;
         }
 
@@ -1202,7 +1361,7 @@
 
         .pagination-btn {
             padding: 8px 12px;
-            background: white;
+            background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 6px;
             cursor: pointer;
@@ -1215,14 +1374,14 @@
 
         .pagination-btn:hover:not(:disabled) {
             background: var(--primary);
-            color: white;
+            color: var(--on-primary);
             border-color: var(--primary);
         }
 
         .pagination-btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
-            background: #f5f5f5;
+            background: var(--bg-muted);
         }
 
         .pagination-info {
@@ -1268,11 +1427,13 @@
             border-radius: 8px;
             font-size: 14px;
             transition: all 0.2s;
+            background: var(--input-bg);
+            color: var(--text-dark);
         }
 
         .search-input:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.1);
+            box-shadow: 0 0 0 3px var(--focus-ring);
         }
 
         .search-icon {
@@ -1308,7 +1469,7 @@
         }
 
         .search-highlight {
-            background-color: #fef08a;
+            background-color: var(--warning-soft);
             padding: 2px 4px;
             border-radius: 2px;
             font-weight: 600;
@@ -1384,7 +1545,7 @@
         }
         
         #authorizedAgentsList label:hover {
-            background: #f0f9ff !important;
+            background: var(--primary-light) !important;
             transform: translateX(2px);
         }
         
@@ -1393,6 +1554,17 @@
         }
         
         /* 动态路由徽章样式 */
+        html[data-theme="dark"] .btn-primary {
+            box-shadow: 0 1px 0 rgba(255,255,255,.55) inset, 0 10px 32px rgba(255,255,255,.12);
+        }
+        html[data-theme="dark"] .header h1 {
+            background: linear-gradient(180deg, #ffffff 36%, rgba(255,255,255,.55));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+
         .badge-multiplex {
             display: inline-block;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1409,6 +1581,7 @@
     </style>
 </head>
 <body>
+    <div class="theme-grain" aria-hidden="true"></div>
     <div class="container">
         <div class="header">
             <div>
@@ -1416,6 +1589,7 @@
             </div>
             <div class="user-info">
                 <span class="username" id="currentUsername"></span>
+                <button class="header-btn" id="themeToggleBtn" onclick="toggleTheme()" title="切换主题">深色</button>
                 <button class="header-btn" onclick="showUpdateModal()">检查更新</button>
                 <button class="header-btn" onclick="showNotifyModal()">通知设置</button>
                 <button class="header-btn" onclick="showChangePasswordModal()">修改密码</button>
@@ -1558,7 +1732,7 @@
                 <div class="form-group">
                     <label>Agent 名称 *</label>
                     <input type="text" name="name" required placeholder="例如：production-agent" id="agentNameInput">
-                    <small style="color:#718096;font-size:0.85em;">唯一标识，建议使用英文</small>
+                    <small style="color:var(--text-gray);font-size:0.85em;">唯一标识，建议使用英文</small>
                 </div>
                 <div class="form-group">
                     <label>API Key *</label>
@@ -1566,7 +1740,7 @@
                         <input type="text" name="api_key" required placeholder="生成或输入 API Key" id="agentKeyInput" style="flex:1;">
                         <button type="button" class="btn btn-primary btn-sm" onclick="generateApiKey()">生成</button>
                     </div>
-                    <small style="color:#718096;font-size:0.85em;">请妥善保管，创建后无法查看</small>
+                    <small style="color:var(--text-gray);font-size:0.85em;">请妥善保管，创建后无法查看</small>
                 </div>
                 <div class="info-box">
                     <p><strong>使用说明：</strong></p>
@@ -1609,14 +1783,14 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                 <label>运行命令</label>
                 <div class="command-box" id="createdAgentCommand"></div>
             </div>
-            <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:15px;border-radius:8px;margin-top:20px;">
-                <p style="color:#b45309;font-weight:600;margin-bottom:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:inline-block;vertical-align:middle;">
+            <div style="background:var(--warning-bg);border-left:4px solid var(--warning);padding:15px;border-radius:8px;margin-top:20px;">
+                <p style="color:var(--warning-text);font-weight:600;margin-bottom:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:inline-block;vertical-align:middle;">
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
         <line x1="12" y1="9" x2="12" y2="13"/>
         <line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg> 重要提示</p>
-                <p style="color:#92400e;font-size:0.9em;">• 请仔细检查server的连接地址和Agent端口是否正确</p>
-                <p style="color:#92400e;font-size:0.9em;">• 在目标机器上运行上述命令即可连接</p>
+                <p style="color:var(--warning-text);font-size:0.9em;">• 请仔细检查server的连接地址和Agent端口是否正确</p>
+                <p style="color:var(--warning-text);font-size:0.9em;">• 在目标机器上运行上述命令即可连接</p>
             </div>
             <div class="form-actions" style="margin-top:20px;">
                 <button type="button" class="btn btn-primary" onclick="copyAgentCommand()">复制命令</button>
@@ -1640,7 +1814,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                         <input type="text" name="listen_ip" value="::" required placeholder="IP地址" style="flex: 7;">
                         <input type="number" name="listen_port" required placeholder="端口" min="1" max="65535" style="flex: 3;">
                     </div>
-                    <small style="color:#718096;font-size:0.85em;">本地监听 IP (默认::代表同时监听IPV4和V6) 和端口</small>
+                    <small style="color:var(--text-gray);font-size:0.85em;">本地监听 IP (默认::代表同时监听IPV4和V6) 和端口</small>
                 </div>
 
                 <!-- 🆕 端口复用选项 -->
@@ -1649,7 +1823,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                         <input type="checkbox" id="enableMultiplex" name="enable_multiplex" style="width: 18px; height: 18px; cursor: pointer;">
                         <span style="font-weight: 600;">启用端口复用（动态路由）</span>
                     </label>
-                    <small style="color:#718096;font-size:0.85em;display:block;margin-top:6px;">
+                    <small style="color:var(--text-gray);font-size:0.85em;display:block;margin-top:6px;">
                         启用后，单个端口可转发到多个不同目标，支持 Agent 间协作
                     </small>
                 </div>
@@ -1660,7 +1834,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                         <input type="text" name="remote_host" placeholder="目标域名或IP" style="flex: 7;">
                         <input type="number" name="remote_port" placeholder="端口" min="1" max="65535" style="flex: 3;">
                     </div>
-                    <small style="color:#718096;font-size:0.85em;">目标服务器地址和端口</small>
+                    <small style="color:var(--text-gray);font-size:0.85em;">目标服务器地址和端口</small>
                 </div>
 
                 <!-- 🆕 通过端口复用连接选项 -->
@@ -1669,7 +1843,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                         <input type="checkbox" id="useMultiplexProxy" name="use_multiplex_proxy" style="width: 18px; height: 18px; cursor: pointer;">
                         <span style="font-weight: 600;">通过端口复用连接</span>
                     </label>
-                    <small style="color:#718096;font-size:0.85em;display:block;margin-top:6px;">
+                    <small style="color:var(--text-gray);font-size:0.85em;display:block;margin-top:6px;">
                         勾选此项表示远程地址支持端口复用功能，需指定最终目标地址
                     </small>
                 </div>
@@ -1681,7 +1855,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                         <input type="text" name="final_target_host" placeholder="最终目标域名或IP" style="flex: 7;">
                         <input type="number" name="final_target_port" placeholder="端口" min="1" max="65535" style="flex: 3;">
                     </div>
-                    <small style="color:#718096;font-size:0.85em;">
+                    <small style="color:var(--text-gray);font-size:0.85em;">
                         通过端口复用转发到此最终目标
                     </small>
                 </div>
@@ -1689,7 +1863,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                 <div class="form-group">
                     <label>备注（可选）</label>
                     <input type="text" name="instance_note" placeholder="添加备注信息，方便识别...">
-                    <small style="color:#718096;font-size:0.85em;">例如：香港服务器、测试环境等</small>
+                    <small style="color:var(--text-gray);font-size:0.85em;">例如：香港服务器、测试环境等</small>
                 </div>
 
                 <div class="form-actions">
@@ -1715,7 +1889,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                 <div class="form-group">
                     <label>API Key（只读）</label>
                     <div style="position:relative;">
-                        <input type="text" id="editAgentApiKey" readonly style="background:#f9fafb;cursor:default;padding-right:40px;" value="********">
+                        <input type="text" id="editAgentApiKey" readonly style="background:var(--bg-hover);cursor:default;padding-right:40px;" value="********">
                         <button type="button" onclick="copyApiKey()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;" title="复制API Key">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -1723,7 +1897,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                             </svg>
                         </button>
                     </div>
-                    <small style="color:#6b7280;font-size:0.85em;">此API Key用于Agent连接到管理服务器</small>
+                    <small style="color:var(--text-gray);font-size:0.85em;">此API Key用于Agent连接到管理服务器</small>
                 </div>
                 <div class="form-group">
                     <label>备注</label>
@@ -1732,7 +1906,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                 <div class="form-group">
                     <label>月流量限额（GB，0 为不限制）</label>
                     <input type="number" id="editAgentQuota" name="traffic_quota_gb" min="0" step="1" value="0">
-                    <small style="color:#6b7280;">超额后向 Telegram 发通知（需先在右上角配置）</small>
+                    <small style="color:var(--text-gray);">超额后向 Telegram 发通知（需先在右上角配置）</small>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeEditAgentModal()">取消</button>
@@ -1755,7 +1929,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                 
                 <div class="form-group">
                     <label>转发 ID</label>
-                    <div style="background: #f3f4f6; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #6b7280;" id="viewInstanceId"></div>
+                    <div style="background: var(--bg-muted); padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; color: var(--text-gray);" id="viewInstanceId"></div>
                 </div>
                 
                 <div class="form-group">
@@ -1932,6 +2106,21 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
     </div>
 
     <script>
+        function currentTheme() {
+            return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        }
+        function applyTheme(theme) {
+            const t = theme === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', t);
+            try { localStorage.setItem('norrna-theme', t); } catch (e) {}
+            const btn = document.getElementById('themeToggleBtn');
+            if (btn) btn.textContent = t === 'dark' ? '浅色' : '深色';
+        }
+        function toggleTheme() {
+            applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+        }
+        applyTheme(currentTheme());
+
         // ============================================
         // 全局服务器信息
         // ============================================
@@ -2029,10 +2218,10 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
             }
             if (data.lastSeen) {
                 content += `
-                    <div class="detail-item" style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;">
+                    <div class="detail-item" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);">
                         <span class="detail-label">最后活跃:</span>
                     </div>
-                    <div style="font-size:0.75em;color:#a0aec0;margin-top:4px;">
+                    <div style="font-size:0.75em;color:var(--text-faint);margin-top:4px;">
                         ${new Date(data.lastSeen).toLocaleString('zh-CN')}
                     </div>`;
             }
@@ -2260,7 +2449,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
             const container = document.getElementById('serversList');
 
             if (servers.length === 0) {
-                container.innerHTML = '<div class="empty-state" style="padding:40px 20px;"><p style="color:#a0aec0;">暂无服务器</p><p style="color:#cbd5e0;font-size:0.9em;margin-top:10px;">点击上方"添加"按钮添加服务器</p></div>';
+                container.innerHTML = '<div class="empty-state" style="padding:40px 20px;"><p style="color:var(--text-faint);">暂无服务器</p><p style="color:var(--border-strong);font-size:0.9em;margin-top:10px;">点击上方"添加"按钮添加服务器</p></div>';
                 return;
             }
 
@@ -2273,7 +2462,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                         </div>
                     </div>
                     <div class="server-info">
-                        <span class="code" style="background:#f3f4f6;color:#4b5563;border:none;">${escapeHtml(server.host)}:${server.port}</span>
+                        <span class="code" style="background:var(--bg-muted);color:var(--code-fg);border:none;">${escapeHtml(server.host)}:${server.port}</span>
                     </div>
                     <div class="agent-footer">
                         <span class="server-status status-${server.status}">
@@ -2374,7 +2563,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
             const container = document.getElementById('serversList');
 
             if (agents.length === 0) {
-                container.innerHTML = '<div class="empty-state" style="padding:40px 20px;"><p style="color:#a0aec0;">暂无 Agent</p><p style="color:#cbd5e0;font-size:0.9em;margin-top:10px;">点击上方"添加"按钮创建 Agent</p></div>';
+                container.innerHTML = '<div class="empty-state" style="padding:40px 20px;"><p style="color:var(--text-faint);">暂无 Agent</p><p style="color:var(--border-strong);font-size:0.9em;margin-top:10px;">点击上方"添加"按钮创建 Agent</p></div>';
                 return;
             }
 
@@ -2440,7 +2629,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                 container.innerHTML = `
                     <div class="empty-state">
                         <h3>${escapeHtml(server.name)}</h3>
-                        <p style="color:#ef4444;margin-top:10px;">服务器未连接，请先点击连接</p>
+                        <p style="color:var(--danger);margin-top:10px;">服务器未连接，请先点击连接</p>
                     </div>`;
                 return;
             }
@@ -2508,16 +2697,16 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
         <path d="M12 7V4M8 11V9M16 11V9"/>
     </svg></div>
                         <h3>${escapeHtml(agent.name)}</h3>
-                        <p style="color:#ef4444;margin-top:10px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:inline-block;vertical-align:middle;">
+                        <p style="color:var(--danger);margin-top:10px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:inline-block;vertical-align:middle;">
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
         <line x1="12" y1="9" x2="12" y2="13"/>
         <line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg> Agent 离线</p>
-                        <p style="color:#a0aec0;margin-top:5px;">请启动 Norrna-Agent 连接到管理服务器</p>
+                        <p style="color:var(--text-faint);margin-top:5px;">请启动 Norrna-Agent 连接到管理服务器</p>
                         <div style="margin-top:20px;text-align:left;max-width:600px;margin-left:auto;margin-right:auto;">
-                            <p style="color:#718096;margin-bottom:10px;"><strong>连接命令：</strong></p>
+                            <p style="color:var(--text-gray);margin-bottom:10px;"><strong>连接命令：</strong></p>
                             <div class="command-box" id="offlineDeployCommand">正在加载命令...</div>
-                            <p style="color:#a0aec0;font-size:0.85em;margin-top:10px;">注意：此命令包含您的 API Key，请妥善保管</p>
+                            <p style="color:var(--text-faint);font-size:0.85em;margin-top:10px;">注意：此命令包含您的 API Key，请妥善保管</p>
                         </div>
                     </div>
                 `;
@@ -2653,7 +2842,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                 
                 paginatedInstances.forEach(inst => {
                     const statusClass = inst.status === 'Running' ? 'status-connected' : 'status-disconnected';
-                    const noteText = inst.note ? highlightSearchText(escapeHtml(inst.note)) : '<span style="color:#ccc;">未设置</span>';
+                    const noteText = inst.note ? highlightSearchText(escapeHtml(inst.note)) : '<span style="color:var(--text-faint);">未设置</span>';
                     const listenText = highlightSearchText(escapeHtml(inst.config.listen || 'N/A'));
                     
                     // 🔧 优化远程地址显示
@@ -2664,7 +2853,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                         // 服务端模式
                         const remote = inst.config.remote || '';
                         if (remote === '127.0.0.1:1' || !remote) {
-                            remoteText = '<span style="color:#6b7280;font-style:italic;">无默认远程地址</span>';
+                            remoteText = '<span style="color:var(--text-gray);font-style:italic;">无默认远程地址</span>';
                         } else {
                             remoteText = highlightSearchText(escapeHtml(remote));
                         }
@@ -2674,8 +2863,8 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
                         const finalTarget = inst.config.final_target || 'N/A';
                         remoteText = `
                             <div style="display:flex;flex-direction:column;gap:4px;">
-                                <div><span class="code">${proxyAddr}</span> <span style="font-size:10px;color:#6b7280;">(复用)</span></div>
-                                <div><span class="code">${highlightSearchText(escapeHtml(finalTarget))}</span> <span style="font-size:10px;color:#6b7280;">(目标)</span></div>
+                                <div><span class="code">${proxyAddr}</span> <span style="font-size:10px;color:var(--text-gray);">(复用)</span></div>
+                                <div><span class="code">${highlightSearchText(escapeHtml(finalTarget))}</span> <span style="font-size:10px;color:var(--text-gray);">(目标)</span></div>
                             </div>
                         `;
                     } else {
@@ -3153,7 +3342,7 @@ async function connectServer(id) {
             const currentAgentId = document.getElementById('instanceAgentId').value;
             
             if (!agents || agents.length === 0) {
-                container.innerHTML = '<div style="padding:12px;text-align:center;color:#999;">暂无可用 Agent</div>';
+                container.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-faint);">暂无可用 Agent</div>';
                 return;
             }
             
@@ -3161,7 +3350,7 @@ async function connectServer(id) {
             const otherAgents = agents.filter(agent => agent.id !== currentAgentId);
             
             if (otherAgents.length === 0) {
-                container.innerHTML = '<div style="padding:12px;text-align:center;color:#999;">暂无其他 Agent 可授权</div>';
+                container.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-faint);">暂无其他 Agent 可授权</div>';
                 return;
             }
             
@@ -3169,11 +3358,11 @@ async function connectServer(id) {
             let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
             otherAgents.forEach(agent => {
                 const isOnline = agent.status === 'online';
-                const statusColor = isOnline ? '#10b981' : '#6b7280';
+                const statusColor = isOnline ? 'var(--success)' : 'var(--text-gray)';
                 html += `
-                    <label style="display:flex;align-items:center;gap:8px;padding:8px;background:white;border-radius:4px;cursor:pointer;border:1px solid #e5e7eb;transition:all 0.2s;" 
-                           onmouseover="this.style.borderColor='#3b82f6'" 
-                           onmouseout="this.style.borderColor='#e5e7eb'">
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-card);border-radius:4px;cursor:pointer;border:1px solid var(--border-color);transition:all 0.2s;" 
+                           onmouseover="this.style.borderColor='var(--accent)'" 
+                           onmouseout="this.style.borderColor='var(--border-color)'">
                         <input type="checkbox" name="authorized_agents" value="${agent.id}" 
                                style="width:16px;height:16px;cursor:pointer;">
                         <div style="flex:1;">
@@ -3182,7 +3371,7 @@ async function connectServer(id) {
                                 <span style="font-weight:500;">${agent.name || agent.id}</span>
                             </div>
                         </div>
-                        ${!isOnline ? '<span style="font-size:11px;color:#ef4444;">离线</span>' : ''}
+                        ${!isOnline ? '<span style="font-size:11px;color:var(--danger);">离线</span>' : ''}
                     </label>
                 `;
             });
@@ -3741,7 +3930,7 @@ async function createInstance(e) {
                 <div class="detail-item"><span class="detail-label">内存</span><span class="detail-value">${memUsagePercent}% (${memUsageGB}G)</span></div>
                 <div class="detail-item"><span class="detail-label">流量</span><span class="detail-value">${formatTraffic(a)}</span></div>
                 <div class="detail-item"><span class="detail-label">内核</span><span class="detail-value">${escapeHtml(shortRealmVersion(a.realm_version) || '—')}</span></div>
-                <div style="font-size:12px;color:#94a3b8;margin-top:6px;">${escapeHtml(lastSeen)}</div>
+                <div style="font-size:12px;color:var(--text-faint);margin-top:6px;">${escapeHtml(lastSeen)}</div>
                 <div class="pop-actions">
                     <button class="btn btn-secondary btn-sm" onclick="runUnlockCheck('${a.id}')">解锁</button>
                     <button class="btn btn-secondary btn-sm" onclick="showEditAgentModal('${a.id}')">编辑</button>
@@ -3799,40 +3988,40 @@ async function createInstance(e) {
                 const res = await fetch('/api/update/check');
                 const data = await res.json();
                 if (!data.success) {
-                    body.innerHTML = '<p style="color:#dc2626;">' + escapeHtml(data.message || '检查失败') + '</p>';
+                    body.innerHTML = '<p style="color:var(--danger);">' + escapeHtml(data.message || '检查失败') + '</p>';
                     return;
                 }
                 const s = data.data || {};
-                let html = `<div style="padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
-                    <div style="font-size:13px;color:#64748b;margin-bottom:6px;">面板</div>
+                let html = `<div style="padding:12px 14px;background:var(--bg-muted);border:1px solid var(--border-color);border-radius:12px;">
+                    <div style="font-size:13px;color:var(--text-gray);margin-bottom:6px;">面板</div>
                     <div>当前 <strong>${escapeHtml(s.current || '')}</strong>　最新 <strong>${escapeHtml(s.latest || '')}</strong></div>`;
                 if (s.update_available) {
-                    html += '<div style="margin-top:8px;color:#059669;font-size:13px;">有新版本，点右下角「更新面板」。</div>';
+                    html += '<div style="margin-top:8px;color:var(--success);font-size:13px;">有新版本，点右下角「更新面板」。</div>';
                     btn.style.display = 'inline-flex';
                 } else {
-                    html += '<div style="margin-top:8px;color:#94a3b8;font-size:13px;">面板已是最新。</div>';
+                    html += '<div style="margin-top:8px;color:var(--text-faint);font-size:13px;">面板已是最新。</div>';
                 }
                 html += '</div>';
 
-                html += '<div style="font-size:13px;color:#64748b;margin:16px 0 8px;">节点 Agent</div>';
+                html += '<div style="font-size:13px;color:var(--text-gray);margin:16px 0 8px;">节点 Agent</div>';
                 if (!agents.length) {
-                    html += '<p style="color:#94a3b8;font-size:13px;">还没有 Agent。</p>';
+                    html += '<p style="color:var(--text-faint);font-size:13px;">还没有 Agent。</p>';
                 } else {
                     html += '<div style="display:flex;flex-direction:column;gap:8px;">';
                     agents.forEach(a => {
                         const online = a.status === 'online';
                         const st = online
-                            ? '<span style="color:#059669;font-size:12px;">在线</span>'
-                            : '<span style="color:#94a3b8;font-size:12px;">离线</span>';
+                            ? '<span style="color:var(--success);font-size:12px;">在线</span>'
+                            : '<span style="color:var(--text-faint);font-size:12px;">离线</span>';
                         const realm = a.realm_version ? escapeHtml(a.realm_version) : 'Realm 未知';
                         const btns = online
                             ? `<button type="button" class="btn btn-primary btn-sm" onclick="doUpdateAgent('${a.id}')">更新节点</button>
                                <button type="button" class="btn btn-secondary btn-sm" onclick="doUpdateRealm('${a.id}')">更新内核</button>`
-                            : '<span style="font-size:12px;color:#94a3b8;">上线后可更新</span>';
-                        html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #e2e8f0;border-radius:12px;">
+                            : '<span style="font-size:12px;color:var(--text-faint);">上线后可更新</span>';
+                        html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--border-color);border-radius:12px;">
                             <div style="min-width:0;">
                                 <div style="font-weight:650;">${escapeHtml(a.name || '')} ${st}</div>
-                                <div style="font-size:12px;color:#64748b;margin-top:2px;">${realm}</div>
+                                <div style="font-size:12px;color:var(--text-gray);margin-top:2px;">${realm}</div>
                             </div>
                             <div style="display:flex;gap:6px;flex-shrink:0;">${btns}</div>
                         </div>`;
@@ -3844,7 +4033,7 @@ async function createInstance(e) {
                 }
                 body.innerHTML = html;
             } catch (e) {
-                body.innerHTML = '<p style="color:#dc2626;">' + escapeHtml(e.message) + '</p>';
+                body.innerHTML = '<p style="color:var(--danger);">' + escapeHtml(e.message) + '</p>';
             }
         }
         async function doUpdateManager() {
@@ -3989,30 +4178,30 @@ async function createInstance(e) {
                 const data = await res.json();
                 const items = data.data || [];
                 if (!data.success) {
-                    document.getElementById('unlockBody').innerHTML = '<p style="color:#dc2626;">' + escapeHtml(data.message || '检测失败') + '</p>';
+                    document.getElementById('unlockBody').innerHTML = '<p style="color:var(--danger);">' + escapeHtml(data.message || '检测失败') + '</p>';
                     return;
                 }
                 if (items.length === 1 && items[0].status === 'unsupported') {
                     document.getElementById('unlockBody').innerHTML = `
-                        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;line-height:1.65;color:#334155;">
+                        <div style="background:var(--bg-muted);border:1px solid var(--border-color);border-radius:12px;padding:16px 18px;line-height:1.65;color:var(--code-fg);">
                             ${escapeHtml(items[0].detail || '')}
                         </div>`;
                     return;
                 }
                 const rows = items.map(it => {
-                    let color = '#6b7280';
+                    let color = 'var(--text-gray)';
                     let label = it.status;
-                    if (it.status === 'yes') { color = '#059669'; label = '解锁'; }
-                    else if (it.status === 'no') { color = '#dc2626'; label = '未解锁'; }
+                    if (it.status === 'yes') { color = 'var(--success)'; label = '解锁'; }
+                    else if (it.status === 'no') { color = 'var(--danger)'; label = '未解锁'; }
                     else { color = '#6b7280'; label = '超时'; }
-                    return `<tr><td style="padding:8px 4px;">${escapeHtml(it.name)}</td><td style="padding:8px 4px;color:${color};font-weight:650;">${label}</td><td style="padding:8px 4px;color:#9ca3af;font-size:12px;">${escapeHtml(it.detail || '')}</td></tr>`;
+                    return `<tr><td style="padding:8px 4px;">${escapeHtml(it.name)}</td><td style="padding:8px 4px;color:${color};font-weight:650;">${label}</td><td style="padding:8px 4px;color:var(--text-faint);font-size:12px;">${escapeHtml(it.detail || '')}</td></tr>`;
                 }).join('');
                 const hint = viaLanding
                     ? '请求经该转发到达落地后再访问网站。'
                     : '测的是这台 Agent 自己的出口。';
-                document.getElementById('unlockBody').innerHTML = `<table style="width:100%;border-collapse:collapse;">${rows}</table><p style="color:#9ca3af;font-size:12px;margin-top:12px;">${hint}</p>`;
+                document.getElementById('unlockBody').innerHTML = `<table style="width:100%;border-collapse:collapse;">${rows}</table><p style="color:var(--text-faint);font-size:12px;margin-top:12px;">${hint}</p>`;
             } catch (e) {
-                document.getElementById('unlockBody').innerHTML = '<p style="color:#dc2626;">' + escapeHtml(e.message) + '</p>';
+                document.getElementById('unlockBody').innerHTML = '<p style="color:var(--danger);">' + escapeHtml(e.message) + '</p>';
             }
         }
 
@@ -4134,7 +4323,7 @@ async function createInstance(e) {
                     // 立即更新页面上的备注显示
                     const noteElement = document.getElementById(`note-${instanceId}`);
                     if (noteElement) {
-                        noteElement.innerHTML = note ? escapeHtml(note) : '<span style="color:#ccc;">未设置</span>';
+                        noteElement.innerHTML = note ? escapeHtml(note) : '<span style="color:var(--text-faint);">未设置</span>';
                     }
                     
                     // 刷新实例列表
@@ -4257,9 +4446,9 @@ async function createInstance(e) {
     
 <!-- 版权信息 -->
 <div style="text-align: center; margin-top: 30px;">
-    <div style="color: #a0aec0; font-size: 13px;">
+    <div style="color: var(--text-faint); font-size: 13px;">
         <p style="font-weight: 500; color: var(--primary); margin: 0;">Norrna</p>
-        <p style="color: var(--primary); margin: 0;">26.1.29</p>
+        <p style="color: var(--primary); margin: 0;">26.1.30</p>
     </div>
 </div>
 

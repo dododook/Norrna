@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug)]
-#[command(name = "norrna", version = "26.1.29", about = "Norrna agent (Realm kernel)")]
+#[command(name = "norrna", version = "26.1.30", about = "Norrna agent (Realm kernel)")]
 struct Cli {
     #[command(subcommand)]
     cmd: Commands,
