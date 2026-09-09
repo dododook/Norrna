@@ -255,37 +255,103 @@ void main() {
             min-height: 0;
         }
 
-        /* --- Header --- */
-        .header {
-            background: var(--header-bg);
-            border-radius: 15px;
-            padding: 15px 30px 15px 30px;
-            margin-bottom: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+        /* --- Floating pill nav --- */
+        .topnav {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
+            margin-bottom: 22px;
+            position: relative;
+            z-index: 20;
+        }
+        .topnav-inner {
+            display: flex;
             align-items: center;
-            border: 1px solid transparent;
+            gap: 10px;
+            padding: 6px 8px 6px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: rgba(255,255,255,.78);
+            backdrop-filter: blur(18px) saturate(1.4);
+            -webkit-backdrop-filter: blur(18px) saturate(1.4);
+            box-shadow: 0 10px 32px rgba(0,0,0,.08);
         }
-        html[data-theme="dark"] .header {
+        html[data-theme="dark"] .topnav-inner {
+            background: rgba(24,24,24,.62);
+            border-color: rgba(255,255,255,.08);
+            box-shadow: 0 12px 40px rgba(0,0,0,.4);
+        }
+        .topnav-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-right: 6px;
+            color: var(--text-dark);
+            font-weight: 800;
+            font-size: 15px;
+            letter-spacing: -.3px;
+            user-select: none;
+        }
+        .brand-mark {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #6b8ef5, #a78bfa);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 800;
+        }
+        .topnav-menu {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .topnav-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-gray);
+            transition: background .2s, color .2s;
+        }
+        .topnav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+        .topnav-item:hover { color: var(--text-dark); background: var(--bg-hover); }
+        .topnav-item.active {
+            background: var(--primary);
+            color: var(--on-primary);
+        }
+        .topnav-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 4px;
+        }
+        .topnav .theme-toggle-btn,
+        .topnav .user-avatar-btn {
+            width: 34px;
+            min-width: 34px;
+            height: 34px;
+            background: transparent;
+            color: var(--text-dark);
+            border-color: transparent;
+        }
+        .topnav .theme-toggle-btn:hover,
+        .topnav .user-avatar-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-dark);
+            transform: none;
             box-shadow: none;
-            border-color: var(--border-color);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
         }
 
-        .header h1 {
-            color: var(--header-fg);
-            font-size: 2em;
-            margin-bottom: 6px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-
-        .header p {
-            color: var(--header-muted);
-            font-size: 1.05em;
-        }
+        .header h1 { color: var(--text-dark); }
 
         .user-info {
             display: flex;
@@ -552,17 +618,12 @@ void main() {
                 padding-bottom: 60px;
             }
 
-            .header {
-                padding: 20px 16px;
-                flex-direction: column;
-                gap: 16px;
-                margin-bottom: 20px;
+            .topnav-inner {
+                width: 100%;
+                justify-content: space-between;
             }
-
-            .header h1 {
-                font-size: 1.3em;
-                margin: 0;
-            }
+            .topnav-item span { display: none; }
+            .topnav-item { padding: 8px; }
 
             .user-info {
                 width: 100%;
@@ -1857,10 +1918,9 @@ void main() {
             background-clip: text;
             animation: shine 4.5s linear infinite;
         }
-        .header h1 .shiny {
-            color: rgba(255, 255, 255, 0.72);
+        .topnav-brand .shiny {
+            color: inherit;
         }
-        html[data-theme="dark"] .header h1 .shiny,
         html[data-theme="dark"] .server-name .shiny {
             color: rgba(245, 244, 240, 0.62);
         }
@@ -1878,6 +1938,91 @@ void main() {
             font-size: 12px;
             letter-spacing: .14em;
             color: var(--text-faint);
+        }
+
+        .overview { padding: 4px 4px 12px; }
+        .overview-head {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            margin-bottom: 20px;
+        }
+        .overview-head h2 { font-size: 1.6em; font-weight: 700; margin: 0; }
+        .overview-head .clock { font-size: 13px; color: var(--text-gray); }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            border: 1px solid var(--border-color);
+            background: var(--bg-muted);
+            border-radius: 14px;
+            padding: 16px 18px;
+            display: flex; justify-content: space-between; align-items: center;
+            min-height: 84px;
+        }
+        .stat-card .label { font-size: 12px; color: var(--text-gray); }
+        .stat-card .value { font-size: 28px; font-weight: 700; line-height: 1.15; margin-top: 4px; }
+        .stat-card .stat-ico {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .stat-card .stat-ico svg { width: 18px; height: 18px; }
+        .stat-online .value, .stat-online .stat-ico { color: var(--success); }
+        .stat-online .stat-ico { background: var(--success-bg); }
+        .stat-offline .value, .stat-offline .stat-ico { color: var(--text-gray); }
+        .stat-offline .stat-ico { background: var(--bg-hover); }
+        .stat-run .value, .stat-run .stat-ico { color: var(--success); }
+        .stat-run .stat-ico { background: var(--success-bg); }
+        .stat-stop .value, .stat-stop .stat-ico { color: var(--warning-text); }
+        .stat-stop .stat-ico { background: var(--warning-bg); }
+        .overview-row {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .overview-card {
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            border-radius: 14px;
+            padding: 18px 20px;
+        }
+        .overview-card h3 { font-size: 14px; font-weight: 700; margin: 0 0 14px; }
+        .traffic-rows { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+        .traffic-rows div { display: flex; justify-content: space-between; color: var(--text-gray); }
+        .traffic-rows strong { color: var(--text-dark); font-variant-numeric: tabular-nums; }
+        .traffic-ring-wrap { display: flex; align-items: center; gap: 18px; }
+        .traffic-ring {
+            width: 88px; height: 88px; border-radius: 50%;
+            background: conic-gradient(var(--success) var(--pct, 0%), var(--border-subtle) 0);
+            display: grid; place-items: center; flex-shrink: 0;
+        }
+        .traffic-ring span {
+            width: 62px; height: 62px; border-radius: 50%;
+            background: var(--bg-card); display: grid; place-items: center;
+            font-size: 12px; font-weight: 700;
+        }
+        .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .quick-btn {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px; border-radius: 12px; cursor: pointer;
+            border: 1px solid var(--border-color); background: var(--bg-muted);
+            text-align: left; color: var(--text-dark); font-weight: 600; font-size: 13px;
+        }
+        .quick-btn:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+        .quick-btn span { display: block; font-size: 11px; font-weight: 400; color: var(--text-gray); margin-top: 2px; }
+        .quick-ico {
+            width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; color: #fff;
+        }
+        .quick-ico svg { width: 16px; height: 16px; }
+        .nav-overview {
+            margin-bottom: 12px;
+        }
+        @media (max-width: 1024px) {
+            .stat-grid { grid-template-columns: 1fr 1fr; }
+            .overview-row { grid-template-columns: 1fr; }
         }
 
         .badge-multiplex {
@@ -1911,22 +2056,35 @@ void main() {
     <div class="theme-grain" aria-hidden="true"></div>
     <canvas id="spark" aria-hidden="true"></canvas>
     <div class="container">
-        <div class="header">
-            <div>
-                <h1><span class="shiny">NORRNA</span></h1>
-            </div>
-            <div class="user-info">
-                <button type="button" class="header-btn theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme(event)" title="切换到深色" aria-label="切换主题">
-                    <svg class="icon-sun" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM11 1V4a1 1 0 1 0 2 0V1a1 1 0 1 0-2 0zm0 19v3a1 1 0 1 0 2 0v-3a1 1 0 1 0-2 0zM4.222 4.222a1 1 0 0 0-1.414 1.414l2.121 2.121a1 1 0 0 0 1.414-1.414L4.222 4.222zm13.435 13.435a1 1 0 0 0-1.414 1.414l2.121 2.121a1 1 0 0 0 1.414-1.414l-2.121-2.121zM1 11h3a1 1 0 1 0 0-2H1a1 1 0 1 0 0 2zm19 0h3a1 1 0 1 0 0-2h-3a1 1 0 1 0 0 2zM6.343 19.071a1 1 0 0 0-1.414-1.414l-2.121 2.121a1 1 0 0 0 1.414 1.414l2.121-2.121zM19.778 4.222a1 1 0 0 0-1.414 1.414l-2.121-2.121a1 1 0 0 0 1.414-1.414l2.121 2.121z"></path>
-                    </svg>
-                    <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M12.115 2.012a.75.75 0 0 1 .639 1.157 8 8 0 0 0 1.22 10.96 8 8 0 0 0 6.883 1.074.75.75 0 0 1 .843.914 10.002 10.002 0 0 1-19.646-2.58A10 10 0 0 1 12.114 2.012z"></path>
-                    </svg>
-                </button>
-                <button type="button" class="user-avatar-btn" id="userAvatarBtn" onclick="toggleUserMenu(event)" title="账户" aria-label="账户菜单">
-                    <span class="user-avatar" id="userAvatar"></span>
-                </button>
+        <div class="topnav">
+            <div class="topnav-inner">
+                <div class="topnav-brand">
+                    <span class="brand-mark">N</span>
+                    <span class="shiny">Norrna</span>
+                </div>
+                <nav class="topnav-menu">
+                    <button type="button" class="topnav-item active" data-nav="overview" onclick="navOverview()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+                        <span>总览</span>
+                    </button>
+                    <button type="button" class="topnav-item" data-nav="nodes" onclick="navNodes()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M9 7h6v4H9z"/></svg>
+                        <span>节点</span>
+                    </button>
+                </nav>
+                <div class="topnav-actions">
+                    <button type="button" class="header-btn theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme(event)" title="切换到深色" aria-label="切换主题">
+                        <svg class="icon-sun" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM11 1V4a1 1 0 1 0 2 0V1a1 1 0 1 0-2 0zm0 19v3a1 1 0 1 0 2 0v-3a1 1 0 1 0-2 0zM4.222 4.222a1 1 0 0 0-1.414 1.414l2.121 2.121a1 1 0 0 0 1.414-1.414L4.222 4.222zm13.435 13.435a1 1 0 0 0-1.414 1.414l2.121 2.121a1 1 0 0 0 1.414-1.414l-2.121-2.121zM1 11h3a1 1 0 1 0 0-2H1a1 1 0 1 0 0 2zm19 0h3a1 1 0 1 0 0-2h-3a1 1 0 1 0 0 2zM6.343 19.071a1 1 0 0 0-1.414-1.414l-2.121 2.121a1 1 0 0 0 1.414 1.414l2.121-2.121zM19.778 4.222a1 1 0 0 0-1.414 1.414l-2.121-2.121a1 1 0 0 0 1.414-1.414l2.121 2.121z"></path>
+                        </svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12.115 2.012a.75.75 0 0 1 .639 1.157 8 8 0 0 0 1.22 10.96 8 8 0 0 0 6.883 1.074.75.75 0 0 1 .843.914 10.002 10.002 0 0 1-19.646-2.58A10 10 0 0 1 12.114 2.012z"></path>
+                        </svg>
+                    </button>
+                    <button type="button" class="user-avatar-btn" id="userAvatarBtn" onclick="toggleUserMenu(event)" title="账户" aria-label="账户菜单">
+                        <span class="user-avatar" id="userAvatar"></span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -2736,7 +2894,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
             await loadAgents();
             await loadServers();
             renderAgents();
-            
+            if (!currentAgentId) showOverview();
             startAutoRefresh();
         });
 
@@ -2781,6 +2939,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
             if (hasChanges) {
                 console.log('Agent状态变化，更新显示');
                 renderAgents();
+                if (!currentAgentId) showOverview();
             }
             
             if (currentAgentId) {
@@ -3047,19 +3206,28 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
         function renderAgents() {
             console.log('Rendering agents, count:', agents.length);
             const container = document.getElementById('serversList');
-
-            if (agents.length === 0) {
-                container.innerHTML = '<div class="empty-state" style="padding:40px 20px;"><p style="color:var(--text-faint);">暂无 Agent</p><p style="color:var(--border-strong);font-size:0.9em;margin-top:10px;">点击上方"添加"按钮创建 Agent</p></div>';
-                return;
-            }
-
-            // 🆕 分页逻辑
-            const totalPages = Math.ceil(agents.length / agentPageSize);
+            const totalPages = Math.max(1, Math.ceil(agents.length / agentPageSize));
             const startIndex = (agentPage - 1) * agentPageSize;
             const endIndex = Math.min(startIndex + agentPageSize, agents.length);
             const paginatedAgents = agents.slice(startIndex, endIndex);
 
-            let html = paginatedAgents.map(a => {
+            let html = `
+                <div class="server-card nav-overview ${!currentAgentId ? 'active' : ''}" onclick="showOverview()">
+                    <div class="agent-card-header">
+                        <div class="agent-card-left">
+                            <div class="server-name">总览</div>
+                        </div>
+                    </div>
+                    <div class="agent-note">节点与转发概况</div>
+                </div>
+            `;
+            if (agents.length === 0) {
+                html += '<div class="empty-state" style="padding:24px 12px;"><p style="color:var(--text-faint);">暂无 Agent</p><p style="color:var(--border-strong);font-size:0.9em;margin-top:8px;">点击上方「添加」创建节点</p></div>';
+                container.innerHTML = html;
+                return;
+            }
+
+            html += paginatedAgents.map(a => {
                 return `
                     <div class="server-card ${currentAgentId === a.id ? 'active' : ''}" onclick="selectAgent('${a.id}')">
                         <div class="agent-card-header">
@@ -3096,6 +3264,140 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
             container.innerHTML = html;
         }
 
+        function formatBytes(n) {
+            const v = Number(n) || 0;
+            if (v >= 1e12) return (v / 1e12).toFixed(2) + ' TB';
+            if (v >= 1e9) return (v / 1e9).toFixed(2) + ' GB';
+            if (v >= 1e6) return (v / 1e6).toFixed(2) + ' MB';
+            if (v >= 1e3) return (v / 1e3).toFixed(1) + ' KB';
+            return v.toFixed(0) + ' B';
+        }
+
+        function setNav(which) {
+            document.querySelectorAll('.topnav-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.nav === which);
+            });
+        }
+        function navOverview() {
+            showOverview();
+        }
+        function navNodes() {
+            if (currentAgentId && agents.some(a => a.id === currentAgentId)) {
+                selectAgent(currentAgentId);
+                return;
+            }
+            if (agents[0]) {
+                selectAgent(agents[0].id);
+                return;
+            }
+            setNav('nodes');
+            const container = document.getElementById('instancesContent');
+            if (container) {
+                container.innerHTML = '<div class="empty-state"><h3>还没有节点</h3><p>点击左侧「添加」安装第一台 Agent</p></div>';
+            }
+        }
+        function showOverview() {
+            currentAgentId = null;
+            lastInstancesData = null;
+            setNav('overview');
+            renderAgents();
+            renderOverview();
+        }
+
+        async function renderOverview() {
+            const container = document.getElementById('instancesContent');
+            if (!container) return;
+            const online = agents.filter(a => a.status === 'online');
+            const offline = agents.length - online.length;
+            container.innerHTML = `
+                <div class="overview">
+                    <div class="overview-head">
+                        <div>
+                            <h2>总览</h2>
+                            <div class="clock" id="overviewClock"></div>
+                        </div>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-card stat-online"><div><div class="label">在线节点</div><div class="value">${online.length}</div></div>
+                            <div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>
+                        <div class="stat-card stat-offline"><div><div class="label">离线节点</div><div class="value">${offline}</div></div>
+                            <div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></div></div>
+                        <div class="stat-card stat-run"><div><div class="label">运行中转发</div><div class="value" id="ovRunning">…</div></div>
+                            <div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div></div>
+                        <div class="stat-card stat-stop"><div><div class="label">已停止转发</div><div class="value" id="ovStopped">…</div></div>
+                            <div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></div></div>
+                    </div>
+                    <div class="overview-row">
+                        <div class="overview-card">
+                            <h3>本月流量</h3>
+                            <div class="traffic-ring-wrap">
+                                <div class="traffic-ring" id="ovRing"><span id="ovRingPct">—</span></div>
+                                <div class="traffic-rows" id="ovTraffic"></div>
+                            </div>
+                        </div>
+                        <div class="overview-card">
+                            <h3>快捷操作</h3>
+                            <div class="quick-grid">
+                                <button type="button" class="quick-btn" onclick="handleAdd()">
+                                    <div class="quick-ico" style="background:#3b82f6;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M9 7h6v4H9z"/></svg></div>
+                                    <div>添加节点<span>安装一台新 Agent</span></div>
+                                </button>
+                                <button type="button" class="quick-btn" onclick="showNotifyModal()">
+                                    <div class="quick-ico" style="background:#8b5cf6;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+                                    <div>通知设置<span>Telegram 离线/超额</span></div>
+                                </button>
+                                <button type="button" class="quick-btn" onclick="showUpdateModal()">
+                                    <div class="quick-ico" style="background:#10b981;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg></div>
+                                    <div>检查更新<span>面板 / 节点 / 内核</span></div>
+                                </button>
+                                <button type="button" class="quick-btn" onclick="showChangePasswordModal()">
+                                    <div class="quick-ico" style="background:#64748b;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+                                    <div>修改密码<span>管理员登录密码</span></div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            tickOverviewClock();
+            const used = agents.reduce((s, a) => s + (a.traffic_used_bytes || 0), 0);
+            const quota = agents.reduce((s, a) => s + (a.traffic_quota_bytes || 0), 0);
+            const pct = quota > 0 ? Math.min(100, Math.round(used / quota * 100)) : 0;
+            const ring = document.getElementById('ovRing');
+            const ringPct = document.getElementById('ovRingPct');
+            const traffic = document.getElementById('ovTraffic');
+            if (ring) ring.style.setProperty('--pct', pct + '%');
+            if (ringPct) ringPct.textContent = quota > 0 ? pct + '%' : '—';
+            if (traffic) {
+                traffic.innerHTML = `
+                    <div>已用 <strong>${formatBytes(used)}</strong></div>
+                    <div>限额 <strong>${quota > 0 ? formatBytes(quota) : '未设置'}</strong></div>
+                    <div>节点 <strong>${agents.length}</strong></div>`;
+            }
+            let running = 0, stopped = 0;
+            await Promise.all(online.map(async a => {
+                try {
+                    const res = await fetch(`/api/agents/${a.id}/instances`);
+                    const data = await res.json();
+                    const list = (data && data.data) || [];
+                    list.forEach(i => {
+                        if (i.status === 'Running') running++;
+                        else stopped++;
+                    });
+                } catch (e) {}
+            }));
+            const rEl = document.getElementById('ovRunning');
+            const sEl = document.getElementById('ovStopped');
+            if (rEl) rEl.textContent = String(running);
+            if (sEl) sEl.textContent = String(stopped);
+        }
+
+        function tickOverviewClock() {
+            const el = document.getElementById('overviewClock');
+            if (!el) return;
+            const now = new Date();
+            el.textContent = '当前时间 ' + now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        setInterval(tickOverviewClock, 1000);
 
         async function selectServer(id) {
             console.log('Selecting server:', id);
@@ -3138,6 +3440,7 @@ bash <(curl -fsSL http://YOUR_SERVER:${location.port}/norrna_agent.sh) \
         async function selectAgent(id) {
             console.log('Selecting agent:', id);
             currentAgentId = id;
+            setNav('nodes');
             lastInstancesData = null;
             
             // 🆕 重置转发列表的分页和搜索状态
@@ -3491,18 +3794,7 @@ async function connectServer(id) {
                     showToast('删除成功', 'success');
                     if (currentAgentId === id) {
                         currentAgentId = null;
-                        document.getElementById('instancesContent').innerHTML = `
-                            <div class="empty-state">
-                                <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;">
-        <rect x="5" y="11" width="14" height="10" rx="2"/>
-        <circle cx="9" cy="15" r="1" fill="currentColor"/>
-        <circle cx="15" cy="15" r="1" fill="currentColor"/>
-        <path d="M9 7h6v4H9z"/>
-        <path d="M12 7V4M8 11V9M16 11V9"/>
-    </svg></div>
-                                <h3>请选择一个 Agent</h3>
-                            </div>
-                        `;
+                        showOverview();
                     }
                     await loadAgents();
                     renderAgents();
@@ -5040,7 +5332,7 @@ async function createInstance(e) {
         })();
     </script>
     
-<footer class="site-footer">© 2026 Norrna · 26.1.33</footer>
+<footer class="site-footer">© 2026 Norrna · 26.1.34</footer>
 
     <script>
         // === 广告随机展示脚本 ===

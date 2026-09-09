@@ -175,9 +175,9 @@ void main() {
             position: relative; z-index: 1;
             background: var(--bg-card);
             width: 100%;
-            max-width: 420px;
-            padding: 40px;
-            border-radius: 16px;
+            max-width: 560px;
+            padding: 36px 40px 32px;
+            border-radius: 20px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             border: 1px solid var(--border-color);
         }
@@ -310,6 +310,98 @@ void main() {
         }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .brand-mark {
+            width: 56px; height: 56px; margin: 0 auto 12px;
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #6b8ef5, #a78bfa);
+            color: #fff; font-weight: 800; font-size: 22px; letter-spacing: -1px;
+        }
+        .steps {
+            display: flex; align-items: center; gap: 0; margin: 8px 0 28px;
+        }
+        .steps li {
+            display: flex; align-items: center; list-style: none; flex: 1;
+        }
+        .steps li:last-child { flex: 0; }
+        .step-num {
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; flex-shrink: 0;
+            background: var(--bg-muted); color: var(--text-gray);
+        }
+        .steps li.active .step-num,
+        .steps li.done .step-num {
+            background: var(--primary); color: var(--on-primary);
+        }
+        .steps li.active .step-num { box-shadow: 0 0 0 4px var(--focus-ring); }
+        .step-label {
+            font-size: 13px; font-weight: 600; margin-left: 8px; white-space: nowrap;
+            color: var(--text-faint, var(--text-gray));
+        }
+        .steps li.active .step-label,
+        .steps li.done .step-label { color: var(--text-dark); }
+        .step-line {
+            height: 1px; flex: 1; margin: 0 10px; background: var(--border-color);
+        }
+        .steps li.done + li .step-line,
+        .steps li.done .step-line { background: var(--primary); }
+        .step-pane { display: none; }
+        .step-pane.active { display: block; animation: rise .28s ease; }
+        @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        .step-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+        .step-desc { font-size: 13px; color: var(--text-gray); margin-bottom: 22px; line-height: 1.6; }
+        .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+        .theme-opt {
+            border: 2px solid var(--border-color); background: var(--bg-muted);
+            border-radius: 14px; padding: 18px 12px; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            color: var(--text-gray); font-size: 13px; font-weight: 600;
+        }
+        .theme-opt.active { border-color: var(--primary); color: var(--text-dark); background: var(--bg-card); }
+        .theme-opt svg { width: 28px; height: 28px; }
+        .input-wrap { position: relative; }
+        .toggle-eye {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; color: var(--text-gray);
+            padding: 4px; display: flex;
+        }
+        .toggle-eye svg { width: 18px; height: 18px; }
+        .ack {
+            display: flex; align-items: flex-start; gap: 10px;
+            font-size: 13px; color: var(--text-gray); line-height: 1.45; margin: 8px 0 18px;
+        }
+        .ack input { margin-top: 3px; }
+        .wizard-nav { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-ghost {
+            flex: 1; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;
+            background: var(--bg-muted); color: var(--text-dark); border: 1px solid var(--border-color);
+        }
+        .btn-submit { flex: 1; margin-top: 0; }
+        .feature-list { display: grid; gap: 10px; margin-bottom: 24px; }
+        .feature-list div {
+            display: flex; gap: 10px; align-items: flex-start;
+            font-size: 13px; color: var(--text-gray); line-height: 1.45;
+        }
+        .feature-list strong { color: var(--text-dark); }
+        .dot-ok { width: 8px; height: 8px; border-radius: 50%; background: var(--success); margin-top: 6px; flex-shrink: 0; }
+        .countdown-overlay {
+            display: none; position: fixed; inset: 0; z-index: 50;
+            background: rgba(0,0,0,.55); align-items: center; justify-content: center;
+        }
+        .countdown-overlay.active { display: flex; }
+        .countdown-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 16px; padding: 36px 40px; text-align: center; min-width: 280px;
+        }
+        .countdown-card h2 { margin-bottom: 8px; }
+        .countdown-card p { color: var(--text-gray); font-size: 14px; }
+        .countdown-num { font-size: 42px; font-weight: 800; margin: 12px 0 4px; color: var(--primary); }
+        @media (max-width: 560px) {
+            .step-label { display: none; }
+            .setup-card { padding: 28px 20px; }
+        }
     </style>
 </head>
 <body>
@@ -327,39 +419,87 @@ void main() {
     </button>
     <div class="setup-card">
         <div class="header">
-            <h1>NORRNA</h1>
-            <p>初始化设置 - 创建管理员</p>
+            <div class="brand-mark">N</div>
+            <h1>Norrna</h1>
+            <p>首次启动向导</p>
         </div>
 
-        <div class="info-tip">
-            请设置一个安全的管理员账户，密码至少 6 位。
-        </div>
+        <ol class="steps" id="stepper">
+            <li class="active" data-step="1"><span class="step-num">1</span><span class="step-label">欢迎</span><span class="step-line"></span></li>
+            <li data-step="2"><span class="step-num">2</span><span class="step-label">管理员</span><span class="step-line"></span></li>
+            <li data-step="3"><span class="step-num">3</span><span class="step-label">完成</span></li>
+        </ol>
 
         <div id="errorMessage" class="message error"></div>
-        <div id="successMessage" class="message success"></div>
 
-        <form id="setupForm">
-            <div class="form-group">
-                <label for="username">用户名</label>
-                <input type="text" id="username" name="username" required minlength="3" placeholder="至少3个字符" autocomplete="username">
+        <div class="step-pane active" id="step1">
+            <div class="step-title">欢迎使用 Norrna</div>
+            <div class="step-desc">轻量转发面板：用 Web 管多台 Agent，普通 TCP/UDP 走官方 Realm。</div>
+            <div class="feature-list">
+                <div><span class="dot-ok"></span><span><strong>一键部署节点</strong>，复制命令即可安装 Agent 和 Realm</span></div>
+                <div><span class="dot-ok"></span><span><strong>拨测与解锁</strong>，看延迟和落地出口能力</span></div>
+                <div><span class="dot-ok"></span><span><strong>网页更新</strong>，面板、节点、内核都能在线升级</span></div>
             </div>
+            <div class="step-desc" style="margin-bottom:10px;">先选一个主题，之后随时可改。</div>
+            <div class="theme-grid">
+                <button type="button" class="theme-opt" id="optLight" onclick="pickTheme('light')">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM11 1v3h2V1h-2zm0 19v3h2v-3h-2zM4.22 4.22l2.12 2.12 1.42-1.42L5.64 2.8 4.22 4.22zM16.24 16.24l2.12 2.12 1.42-1.42-2.12-2.12-1.42 1.42zM1 11h3v2H1v-2zm19 0h3v2h-3v-2zM4.22 19.78l1.42 1.42 2.12-2.12-1.42-1.42-2.12 2.12zM16.24 7.76l1.42 1.42 2.12-2.12-1.42-1.42-2.12 2.12z"/></svg>
+                    浅色
+                </button>
+                <button type="button" class="theme-opt" id="optDark" onclick="pickTheme('dark')">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.1 2a.75.75 0 0 1 .64 1.16A8 8 0 0 0 21.7 14.1a.75.75 0 0 1 .84.91A10 10 0 1 1 12.1 2z"/></svg>
+                    深色
+                </button>
+            </div>
+            <button type="button" class="btn-submit" onclick="goStep(2)">下一步</button>
+        </div>
 
-            <div class="form-group">
-                <label for="password">密码</label>
-                <input type="password" id="password" name="password" required minlength="6" placeholder="至少6个字符" autocomplete="new-password">
-                <div class="password-meter">
-                    <div id="passwordStrength"></div>
+        <div class="step-pane" id="step2">
+            <div class="step-title">创建管理员</div>
+            <div class="step-desc">这是登录面板的唯一管理员账号，密码至少 6 位，请妥善保管。</div>
+            <form id="setupForm">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" required minlength="3" placeholder="至少 3 个字符，建议 admin" autocomplete="username">
                 </div>
-            </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <div class="input-wrap">
+                        <input type="password" id="password" name="password" required minlength="6" placeholder="至少 6 个字符" autocomplete="new-password" style="padding-right:40px;">
+                        <button type="button" class="toggle-eye" onclick="togglePw('password', this)" aria-label="显示密码">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                    <div class="password-meter"><div id="passwordStrength"></div></div>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">确认密码</label>
+                    <div class="input-wrap">
+                        <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6" placeholder="再输入一次" autocomplete="new-password" style="padding-right:40px;">
+                        <button type="button" class="toggle-eye" onclick="togglePw('confirmPassword', this)" aria-label="显示密码">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <label class="ack">
+                    <input type="checkbox" id="adminAck">
+                    <span>我已确认用户名和密码，初始化完成后用它登录面板。</span>
+                </label>
+                <div class="wizard-nav">
+                    <button type="button" class="btn-ghost" onclick="goStep(1)">上一步</button>
+                    <button type="submit" class="btn-submit" id="setupBtn">创建并完成</button>
+                </div>
+                <div class="spinner" id="spinner"></div>
+            </form>
+        </div>
+    </div>
 
-            <div class="form-group">
-                <label for="confirmPassword">确认密码</label>
-                <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6" placeholder="再次输入密码" autocomplete="new-password">
-            </div>
-
-            <button type="submit" class="btn-submit" id="setupBtn">创建账户</button>
-            <div class="spinner" id="spinner"></div>
-        </form>
+    <div class="countdown-overlay" id="doneOverlay">
+        <div class="countdown-card">
+            <h2>初始化完成</h2>
+            <div class="countdown-num" id="countdownNum">5</div>
+            <p>即将进入登录页</p>
+        </div>
     </div>
 
     <script>
@@ -377,12 +517,41 @@ void main() {
             applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
         }
         applyTheme(currentTheme());
+        syncThemeOpts();
+
+        function pickTheme(t) {
+            applyTheme(t);
+            syncThemeOpts();
+        }
+        function syncThemeOpts() {
+            const dark = currentTheme() === 'dark';
+            document.getElementById('optDark').classList.toggle('active', dark);
+            document.getElementById('optLight').classList.toggle('active', !dark);
+        }
+        function goStep(n) {
+            document.querySelectorAll('.step-pane').forEach(p => p.classList.remove('active'));
+            const pane = document.getElementById('step' + n);
+            if (pane) pane.classList.add('active');
+            document.querySelectorAll('#stepper li').forEach(li => {
+                const s = parseInt(li.dataset.step, 10);
+                li.classList.toggle('active', s === n);
+                li.classList.toggle('done', s < n);
+            });
+            hideError();
+        }
+        function togglePw(id, btn) {
+            const input = document.getElementById(id);
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.innerHTML = show
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+        }
 
         const form = document.getElementById('setupForm');
         const setupBtn = document.getElementById('setupBtn');
         const spinner = document.getElementById('spinner');
         const errorMessage = document.getElementById('errorMessage');
-        const successMessage = document.getElementById('successMessage');
         const passwordInput = document.getElementById('password');
         const passwordStrength = document.getElementById('passwordStrength');
 
@@ -398,58 +567,43 @@ void main() {
             } catch (error) {}
         }
 
-        // 密码强度检测
         passwordInput.addEventListener('input', () => {
             const password = passwordInput.value;
             let strength = 0;
-            
             if (password.length >= 6) strength++;
             if (password.length >= 10) strength++;
             if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
             if (/\d/.test(password)) strength++;
             if (/[^a-zA-Z0-9]/.test(password)) strength++;
-            
             passwordStrength.className = '';
-            if (strength >= 4) {
-                passwordStrength.className = 'meter-strong';
-            } else if (strength >= 2) {
-                passwordStrength.className = 'meter-medium';
-            } else if (strength >= 1) {
-                passwordStrength.className = 'meter-weak';
-            }
+            if (strength >= 4) passwordStrength.className = 'meter-strong';
+            else if (strength >= 2) passwordStrength.className = 'meter-medium';
+            else if (strength >= 1) passwordStrength.className = 'meter-weak';
         });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            const username = document.getElementById('username').value;
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
-
-            errorMessage.style.display = 'none';
-            successMessage.style.display = 'none';
-
+            hideError();
             if (username.length < 3) return showError('用户名至少需要 3 个字符');
-            if (password.length < 6) return showError('密码至少需要 6 个字符');
+            if (password.length < 6) return showError('密码至少需要 6 位');
             if (password !== confirmPassword) return showError('两次输入的密码不一致');
+            if (!document.getElementById('adminAck').checked) return showError('请勾选确认后再创建');
 
             setupBtn.disabled = true;
             spinner.style.display = 'block';
-
             try {
                 const response = await fetch('/api/auth/setup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password }),
                 });
-
                 const result = await response.json();
-
                 if (result.success) {
-                    successMessage.textContent = '账户创建成功！正在跳转...';
-                    successMessage.style.display = 'block';
                     spinner.style.display = 'none';
-                    setTimeout(() => { window.location.href = '/'; }, 1000);
+                    startCountdown();
                 } else {
                     showError(result.message || '创建失败，请重试');
                 }
@@ -458,11 +612,28 @@ void main() {
             }
         });
 
+        function hideError() { errorMessage.style.display = 'none'; }
         function showError(msg) {
             errorMessage.textContent = msg;
             errorMessage.style.display = 'block';
             setupBtn.disabled = false;
             spinner.style.display = 'none';
+        }
+        function startCountdown() {
+            goStep(3);
+            const overlay = document.getElementById('doneOverlay');
+            overlay.classList.add('active');
+            let n = 5;
+            const el = document.getElementById('countdownNum');
+            el.textContent = n;
+            const t = setInterval(() => {
+                n -= 1;
+                el.textContent = n;
+                if (n <= 0) {
+                    clearInterval(t);
+                    window.location.href = '/login';
+                }
+            }, 1000);
         }
     </script>
     <script>
