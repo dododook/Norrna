@@ -1,7 +1,6 @@
 services:
   norrna:
     image: ghcr.io/dododook/norrna:latest
-    build: .
     container_name: norrna
     restart: unless-stopped
     ports:

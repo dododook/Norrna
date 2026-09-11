@@ -43,12 +43,14 @@ curl -fsSL -o docker-compose.yml \
 docker compose up -d
 ```
 
-或从源码构建：
+不要加 `--build`。那是从源码编译，需要整个仓库里的 `Dockerfile`。
+
+拉镜像若 403，到 GitHub → Packages 把 `norrna` 设成 Public。或本机构建：
 
 ```bash
 git clone https://github.com/dododook/Norrna.git
 cd Norrna
-docker compose up -d --build
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 ```
 
 打开 `http://服务器IP:3000`。数据在 Docker volume `norrna-data`。改端口编辑 compose 里的 `ports` 和 `WEBPORT` / `AGENTPORT`。
