@@ -16,6 +16,7 @@ use norrna_proto::WireMsg;
 const DASHBOARD: &str = include_str!("../static/dashboard.html");
 const LOGIN: &str = include_str!("../static/login.html");
 const SETUP: &str = include_str!("../static/setup.html");
+const LOGO_PNG: &[u8] = include_bytes!("../static/logo.png");
 
 #[derive(Clone)]
 pub struct AppState {
@@ -27,6 +28,7 @@ pub struct AppState {
 pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/", get(page_root))
+        .route("/logo.png", get(serve_logo))
         .route("/login", get(|| async { Html(LOGIN) }))
         .route("/setup", get(|| async { Html(SETUP) }))
         .route("/norrna_agent.sh", get(serve_agent_script))
@@ -119,6 +121,18 @@ pub fn router(state: AppState) -> Router {
         .route("/api/agents/:id/update-realm", post(update_agent_realm))
         .layer(CorsLayer::permissive())
         .with_state(state)
+}
+
+async fn serve_logo() -> Response {
+    (
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "image/png"),
+            (header::CACHE_CONTROL, "public, max-age=86400"),
+        ],
+        LOGO_PNG,
+    )
+        .into_response()
 }
 
 const AGENT_SH: &str = include_str!(concat!(
