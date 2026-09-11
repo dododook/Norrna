@@ -2,7 +2,7 @@
 # Do not cargo-build in CI/QEMU (exit 101). Use published Release binaries.
 FROM debian:bookworm-slim
 ARG TARGETARCH
-ARG NORRNA_VERSION=v26.1.37
+ARG NORRNA_VERSION=v26.1.39
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \

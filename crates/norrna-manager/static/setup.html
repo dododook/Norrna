@@ -386,14 +386,24 @@ void main() {
         }
         .feature-list strong { color: var(--text-dark); }
         .dot-ok { width: 8px; height: 8px; border-radius: 50%; background: var(--success); margin-top: 6px; flex-shrink: 0; }
+        body.setup-done .setup-card,
+        body.setup-done .theme-toggle { display: none; }
         .countdown-overlay {
-            display: none; position: fixed; inset: 0; z-index: 50;
-            background: rgba(0,0,0,.55); align-items: center; justify-content: center;
+            display: none; position: fixed; inset: 0; z-index: 100;
+            background: var(--bg-body); align-items: center; justify-content: center;
         }
         .countdown-overlay.active { display: flex; }
         .countdown-card {
+            position: relative; z-index: 1;
             background: var(--bg-card); border: 1px solid var(--border-color);
-            border-radius: 16px; padding: 36px 40px; text-align: center; min-width: 280px;
+            border-radius: 20px; padding: 36px 40px; text-align: center;
+            min-width: 280px; max-width: 420px; width: calc(100% - 40px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        html[data-theme="dark"] .countdown-card {
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            box-shadow: 0 24px 70px rgba(0,0,0,.4);
         }
         .countdown-card h2 { margin-bottom: 8px; }
         .countdown-card p { color: var(--text-gray); font-size: 14px; }
@@ -620,7 +630,7 @@ void main() {
             spinner.style.display = 'none';
         }
         function startCountdown() {
-            goStep(3);
+            document.body.classList.add('setup-done');
             const overlay = document.getElementById('doneOverlay');
             overlay.classList.add('active');
             let n = 5;
