@@ -7,31 +7,70 @@ on:
   workflow_dispatch:
 
 jobs:
-  linux-amd64:
+  linux:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            suffix: linux-amd64
+            realm: realm-x86_64-unknown-linux-gnu.tar.gz
+            unprefixed: true
+          - target: aarch64-unknown-linux-gnu
+            suffix: linux-arm64
+            realm: realm-aarch64-unknown-linux-gnu.tar.gz
+            unprefixed: false
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Install aarch64 linker
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
       - name: Build
-        run: cargo build --release --workspace
-      - name: Fetch official Realm
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build --release --workspace --target ${{ matrix.target }}
+      - name: Stage binaries
         run: |
           set -e
           curl -fL --retry 5 -o realm.tar.gz \
-            https://github.com/zhboner/realm/releases/download/v2.9.6/realm-x86_64-unknown-linux-gnu.tar.gz
+            "https://github.com/zhboner/realm/releases/download/v2.9.6/${{ matrix.realm }}"
           tar -xzf realm.tar.gz
           chmod +x realm
-          ./realm -v || ./realm --version
-      - name: Upload binaries
+          cp -f "target/${{ matrix.target }}/release/norrna" "norrna-${{ matrix.suffix }}"
+          cp -f "target/${{ matrix.target }}/release/norrna-manager" "norrna-manager-${{ matrix.suffix }}"
+          cp -f realm "realm-${{ matrix.suffix }}"
+          chmod +x "norrna-${{ matrix.suffix }}" "norrna-manager-${{ matrix.suffix }}" "realm-${{ matrix.suffix }}"
+          if [ "${{ matrix.unprefixed }}" = "true" ]; then
+            cp -f "norrna-${{ matrix.suffix }}" norrna
+            cp -f "norrna-manager-${{ matrix.suffix }}" norrna-manager
+            cp -f "realm-${{ matrix.suffix }}" realm
+            ./realm -v || ./realm --version || true
+          fi
+      - name: Upload arch binaries
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v0.0.{0}', github.run_number) }}
           files: |
-            target/release/norrna
-            target/release/norrna-manager
-            realm
+            norrna-${{ matrix.suffix }}
+            norrna-manager-${{ matrix.suffix }}
+            realm-${{ matrix.suffix }}
           generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload amd64 aliases
+        if: matrix.unprefixed
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v0.0.{0}', github.run_number) }}
+          files: |
+            norrna
+            norrna-manager
+            realm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

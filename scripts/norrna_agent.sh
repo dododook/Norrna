@@ -18,8 +18,10 @@ NC='\033[0m'
 
 # 默认配置
 INSTALL_DIR="/etc/norrna"
-BINARY_URL="https://github.com/dododook/Norrna/releases/latest/download/norrna"
+RELEASE_BASE="https://github.com/dododook/Norrna/releases/latest/download"
+BINARY_URL=""
 PANEL_BINARY_URL=""
+ARCH_TAG=""
 REALM_VERSION="v2.9.6"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_NAME="norrna-agent"
@@ -75,6 +77,18 @@ show_help() {
     echo -e "${GREEN}========================================${NC}"
     echo ""
     exit 0
+}
+
+detect_arch() {
+    case "$(uname -m)" in
+        x86_64|amd64) ARCH_TAG="linux-amd64" ;;
+        aarch64|arm64) ARCH_TAG="linux-arm64" ;;
+        *)
+            log_error "不支持的架构: $(uname -m)（需要 x86_64 或 aarch64）"
+            exit 1
+            ;;
+    esac
+    BINARY_URL="${RELEASE_BASE}/norrna-${ARCH_TAG}"
 }
 
 # 检查root权限
@@ -199,6 +213,7 @@ find_local_norrna() {
 
 # 优先 GitHub Release，失败则用本地文件
 download_binary() {
+    [[ -z "$ARCH_TAG" ]] && detect_arch
     log_info "安装 Norrna 程序..."
     
     local dest="$INSTALL_DIR/norrna"
@@ -217,7 +232,9 @@ download_binary() {
         rm -f "$tmp_file"
         return 1
     }
-    if try_fetch "$BINARY_URL" || try_fetch "$PANEL_BINARY_URL"; then
+    if try_fetch "$BINARY_URL" \
+        || { [[ "$ARCH_TAG" == "linux-amd64" ]] && try_fetch "${RELEASE_BASE}/norrna"; } \
+        || try_fetch "$PANEL_BINARY_URL"; then
         ok=1
         mv "$tmp_file" "$dest"
     else
@@ -295,7 +312,7 @@ install_realm() {
     done
 
     if [[ "$ok" -eq 0 ]]; then
-        local fallback="https://github.com/dododook/Norrna/releases/latest/download/realm"
+        local fallback="${RELEASE_BASE}/realm-${ARCH_TAG}"
         log_warning "官方 Realm 下载失败，尝试 Norrna Release: $fallback"
         if command -v wget >/dev/null 2>&1 && wget -q --show-progress -O "$dest" "$fallback" && [[ -s "$dest" ]]; then
             chmod +x "$dest"
@@ -529,6 +546,7 @@ update() {
     log_info "下载最新版本..."
     local tmp_file="/tmp/norrna_update_$$"
     
+    if [[ -z "$ARCH_TAG" ]]; then detect_arch; fi
     if [[ -n "$BINARY_URL" ]] && wget -q --show-progress -O "$tmp_file" "$BINARY_URL"; then
         # 验证下载的文件
         if [ ! -s "$tmp_file" ]; then
@@ -609,10 +627,12 @@ main() {
     # 检查是否为更新命令
     if [ "$1" = "update" ] || [ "$1" = "upgrade" ] || [ "$1" = "--update" ] || [ "$1" = "--upgrade" ]; then
         check_root
+        detect_arch
         update
     fi
     
     check_root
+    detect_arch
     parse_args "$@"
     
     # 如果参数不完整，进入交互模式

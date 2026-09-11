@@ -5,6 +5,7 @@
 - 面板一键安装 / 更新 / 卸载
 - 节点复制命令即装，自动拉取 `norrna` 和官方 `realm`
 - 每条普通转发独立 Realm 进程，互不影响
+- 支持 **linux-amd64** 和 **linux-arm64**（aarch64，例如 Neoverse / 常见 ARM VPS）
 
 仓库：https://github.com/dododook/Norrna
 

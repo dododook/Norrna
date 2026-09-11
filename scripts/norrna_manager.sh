@@ -19,7 +19,9 @@ INSTALL_DIR="/etc/norrna-manager"
 BINARY_NAME="norrna-manager"
 SERVICE_NAME="norrna-manager"
 REPO_URL="https://github.com/dododook/Norrna"
-DOWNLOAD_URL="https://github.com/dododook/Norrna/releases/latest/download/norrna-manager"
+RELEASE_BASE="https://github.com/dododook/Norrna/releases/latest/download"
+DOWNLOAD_URL=""
+ARCH_TAG=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 解析参数
@@ -126,17 +128,20 @@ check_root() {
 check_architecture() {
     ARCH=$(uname -m)
     case $ARCH in
-        x86_64)
+        x86_64|amd64)
+            ARCH_TAG="linux-amd64"
             log_info "检测到系统架构: x86_64"
             ;;
         aarch64|arm64)
-            log_info "检测到系统架构: ARM64"
+            ARCH_TAG="linux-arm64"
+            log_info "检测到系统架构: ARM64 (aarch64)"
             ;;
         *)
-            log_error "不支持的系统架构: $ARCH"
+            log_error "不支持的系统架构: $ARCH（需要 x86_64 或 aarch64）"
             exit 1
             ;;
     esac
+    DOWNLOAD_URL="${RELEASE_BASE}/norrna-manager-${ARCH_TAG}"
 }
 
 # 检查操作系统
@@ -203,16 +208,26 @@ download_binary() {
     log_info "安装 Norrna Manager..."
 
     local ok=0
-    if [[ -n "$DOWNLOAD_URL" ]]; then
-        log_info "尝试下载: $DOWNLOAD_URL"
-        if command -v curl &> /dev/null && curl -fsSL -o "$dest" "$DOWNLOAD_URL" && [[ -s "$dest" ]]; then
-            ok=1
-        elif command -v wget &> /dev/null && wget -q -O "$dest" "$DOWNLOAD_URL" && [[ -s "$dest" ]]; then
-            ok=1
-        else
-            log_warning "GitHub 下载失败（可能还没有 Release），改为使用本地文件"
-            rm -f "$dest"
+    try_dl() {
+        local url="$1"
+        [[ -z "$url" ]] && return 1
+        log_info "尝试下载: $url"
+        if command -v curl &> /dev/null && curl -fsSL -o "$dest" "$url" && [[ -s "$dest" ]]; then
+            return 0
         fi
+        if command -v wget &> /dev/null && wget -q -O "$dest" "$url" && [[ -s "$dest" ]]; then
+            return 0
+        fi
+        rm -f "$dest"
+        return 1
+    }
+    if try_dl "$DOWNLOAD_URL"; then
+        ok=1
+    elif [[ "$ARCH_TAG" == "linux-amd64" ]] && try_dl "${RELEASE_BASE}/norrna-manager"; then
+        ok=1
+    else
+        log_warning "GitHub 下载失败（可能还没有对应架构的 Release），改为使用本地文件"
+        rm -f "$dest"
     fi
     if [[ "$ok" -eq 0 ]]; then
         local src
@@ -234,9 +249,11 @@ download_binary() {
 
     local agent_src
     agent_src="$(find_local_bin norrna || true)"
-    if [[ -z "$agent_src" ]] && [[ -n "$DOWNLOAD_URL" ]]; then
-        local agent_url="${DOWNLOAD_URL%/*}/norrna"
+    if [[ -z "$agent_src" ]]; then
+        local agent_url="${RELEASE_BASE}/norrna-${ARCH_TAG}"
         if command -v curl &> /dev/null && curl -fsSL -o "${INSTALL_DIR}/norrna" "$agent_url" && [[ -s "${INSTALL_DIR}/norrna" ]]; then
+            agent_src="${INSTALL_DIR}/norrna"
+        elif [[ "$ARCH_TAG" == "linux-amd64" ]] && command -v curl &> /dev/null && curl -fsSL -o "${INSTALL_DIR}/norrna" "${RELEASE_BASE}/norrna" && [[ -s "${INSTALL_DIR}/norrna" ]]; then
             agent_src="${INSTALL_DIR}/norrna"
         fi
     fi
@@ -370,6 +387,7 @@ update() {
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
     echo
     check_root
+    check_architecture
     if [[ ! -f "/etc/systemd/system/${SERVICE_NAME}.service" ]]; then
         log_error "未检测到已安装的 Norrna Manager"
         log_info "请使用安装命令进行安装"

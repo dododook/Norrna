@@ -22,6 +22,23 @@ pub fn current_version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
+fn bin_names(stem: &str) -> Vec<String> {
+    match std::env::consts::ARCH {
+        "aarch64" => vec![format!("{stem}-linux-arm64")],
+        "x86_64" => vec![format!("{stem}-linux-amd64"), stem.to_string()],
+        _ => vec![stem.to_string()],
+    }
+}
+
+fn pick_asset<'a>(assets: &'a [GhAsset], stem: &str) -> Option<&'a str> {
+    for name in bin_names(stem) {
+        if let Some(a) = assets.iter().find(|x| x.name == name) {
+            return Some(a.browser_download_url.as_str());
+        }
+    }
+    None
+}
+
 async fn replace_bin(client: &reqwest::Client, url: &str, dest: &Path) -> Result<()> {
     tracing::info!("[update] {url} -> {}", dest.display());
     let bytes = client
@@ -61,12 +78,8 @@ pub async fn apply_agent() -> Result<String> {
         .await?;
     let version = rel.tag_name.trim_start_matches('v').to_string();
     let exe = std::env::current_exe()?;
-    let norrna_url = rel
-        .assets
-        .iter()
-        .find(|a| a.name == "norrna")
-        .map(|a| a.browser_download_url.as_str())
-        .ok_or_else(|| anyhow::anyhow!("release 里没有 norrna"))?;
+    let norrna_url = pick_asset(&rel.assets, "norrna")
+        .ok_or_else(|| anyhow::anyhow!("release 里没有当前架构的 norrna"))?;
     replace_bin(&client, norrna_url, &exe).await?;
     if let Err(e) = apply_realm().await {
         tracing::warn!("[update] official realm: {e}");

@@ -36,6 +36,23 @@ pub fn current_version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
+fn bin_names(stem: &str) -> Vec<String> {
+    match std::env::consts::ARCH {
+        "aarch64" => vec![format!("{stem}-linux-arm64")],
+        "x86_64" => vec![format!("{stem}-linux-amd64"), stem.to_string()],
+        _ => vec![stem.to_string()],
+    }
+}
+
+fn asset_url<'a>(assets: &'a HashMap<String, String>, stem: &str) -> Option<&'a String> {
+    for name in bin_names(stem) {
+        if let Some(u) = assets.get(&name) {
+            return Some(u);
+        }
+    }
+    None
+}
+
 pub async fn fetch_latest() -> Result<ReleaseInfo> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(20))
@@ -114,12 +131,10 @@ pub async fn apply_manager() -> Result<String> {
         .user_agent(format!("norrna-manager/{}", current_version()))
         .redirect(reqwest::redirect::Policy::limited(10))
         .build()?;
-    let mgr_url = rel
-        .assets
-        .get("norrna-manager")
-        .ok_or_else(|| anyhow::anyhow!("release 里没有 norrna-manager"))?;
+    let mgr_url = asset_url(&rel.assets, "norrna-manager")
+        .ok_or_else(|| anyhow::anyhow!("release 里没有当前架构的 norrna-manager"))?;
     replace_bin(&client, mgr_url, &exe).await?;
-    if let Some(url) = rel.assets.get("norrna") {
+    if let Some(url) = asset_url(&rel.assets, "norrna") {
         let _ = replace_bin(&client, url, &dir.join("norrna")).await;
     }
     schedule_restart("norrna-manager");
