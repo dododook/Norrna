@@ -1,4 +1,6 @@
 services:
   norrna:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.release
     image: norrna:local

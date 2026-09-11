@@ -1,21 +1,27 @@
 # syntax=docker/dockerfile:1
-FROM rust:1-bookworm AS builder
-WORKDIR /src
-COPY Cargo.toml ./
-COPY crates ./crates
-RUN cargo build --release --workspace \
-    && strip target/release/norrna target/release/norrna-manager
-
+# Do not cargo-build in CI/QEMU (exit 101). Use published Release binaries.
 FROM debian:bookworm-slim
+ARG TARGETARCH
+ARG NORRNA_VERSION=v26.1.37
+
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
-WORKDIR /opt/norrna
-COPY --from=builder /src/target/release/norrna-manager /opt/norrna/norrna-manager
-COPY --from=builder /src/target/release/norrna /opt/norrna/norrna
-RUN mkdir -p /etc/norrna-manager /data \
-    && cp /opt/norrna/norrna /etc/norrna-manager/norrna \
-    && chmod +x /opt/norrna/norrna-manager /opt/norrna/norrna /etc/norrna-manager/norrna
+
+RUN set -eux; \
+    case "$TARGETARCH" in \
+      amd64) tag=linux-amd64 ;; \
+      arm64) tag=linux-arm64 ;; \
+      *) echo "unsupported arch: $TARGETARCH"; exit 1 ;; \
+    esac; \
+    base="https://github.com/dododook/Norrna/releases/download/${NORRNA_VERSION}"; \
+    curl -fL --retry 5 -o /usr/local/bin/norrna-manager "$base/norrna-manager-${tag}"; \
+    curl -fL --retry 5 -o /usr/local/bin/norrna "$base/norrna-${tag}"; \
+    chmod +x /usr/local/bin/norrna-manager /usr/local/bin/norrna; \
+    mkdir -p /etc/norrna-manager /data /opt/norrna; \
+    cp /usr/local/bin/norrna /etc/norrna-manager/norrna; \
+    cp /usr/local/bin/norrna /opt/norrna/norrna; \
+    cp /usr/local/bin/norrna-manager /opt/norrna/norrna-manager
 
 ENV WEBPORT=3000
 ENV AGENTPORT=3001
@@ -24,4 +30,4 @@ ENV DATA_DIR=/data
 EXPOSE 3000 3001
 VOLUME ["/data"]
 
-ENTRYPOINT ["/opt/norrna/norrna-manager"]
+ENTRYPOINT ["/usr/local/bin/norrna-manager"]
