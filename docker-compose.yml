@@ -1,6 +1,9 @@
 services:
   norrna:
-    image: ghcr.io/dododook/norrna:latest
+    image: norrna:local
+    build:
+      context: .
+      dockerfile: Dockerfile.release
     container_name: norrna
     restart: unless-stopped
     ports:

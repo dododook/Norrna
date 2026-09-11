@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+# Pulls public GitHub Release binaries (no GHCR login).
+FROM debian:bookworm-slim
+ARG TARGETARCH
+ARG NORRNA_VERSION=v26.1.36
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    case "$TARGETARCH" in \
+      amd64) tag=linux-amd64 ;; \
+      arm64) tag=linux-arm64 ;; \
+      *) echo "unsupported arch: $TARGETARCH"; exit 1 ;; \
+    esac; \
+    base="https://github.com/dododook/Norrna/releases/download/${NORRNA_VERSION}"; \
+    curl -fL --retry 5 -o /usr/local/bin/norrna-manager "$base/norrna-manager-${tag}"; \
+    curl -fL --retry 5 -o /usr/local/bin/norrna "$base/norrna-${tag}"; \
+    chmod +x /usr/local/bin/norrna-manager /usr/local/bin/norrna; \
+    mkdir -p /etc/norrna-manager /data /opt/norrna; \
+    cp /usr/local/bin/norrna /etc/norrna-manager/norrna; \
+    cp /usr/local/bin/norrna /opt/norrna/norrna; \
+    cp /usr/local/bin/norrna-manager /opt/norrna/norrna-manager
+
+ENV WEBPORT=3000
+ENV AGENTPORT=3001
+ENV DATA_DIR=/data
+
+EXPOSE 3000 3001
+VOLUME ["/data"]
+
+ENTRYPOINT ["/usr/local/bin/norrna-manager"]

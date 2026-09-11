@@ -40,12 +40,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts
 mkdir -p norrna && cd norrna
 curl -fsSL -o docker-compose.yml \
   https://raw.githubusercontent.com/dododook/Norrna/main/docker-compose.yml
-docker compose up -d
+curl -fsSL -o Dockerfile.release \
+  https://raw.githubusercontent.com/dododook/Norrna/main/Dockerfile.release
+docker compose up -d --build
 ```
 
-不要加 `--build`。那是从源码编译，需要整个仓库里的 `Dockerfile`。
+这会从 GitHub Release 拉取对应架构的面板二进制（amd64 / arm64），不经过 GHCR。
 
-拉镜像若 403，到 GitHub → Packages 把 `norrna` 设成 Public。或本机构建：
+从源码完整编译：
 
 ```bash
 git clone https://github.com/dododook/Norrna.git
