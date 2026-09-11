@@ -1,0 +1,18 @@
+services:
+  norrna:
+    image: ghcr.io/dododook/norrna:latest
+    build: .
+    container_name: norrna
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      WEBPORT: "3000"
+      AGENTPORT: "3001"
+      DATA_DIR: /data
+    volumes:
+      - norrna-data:/data
+
+volumes:
+  norrna-data:

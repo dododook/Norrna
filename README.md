@@ -32,6 +32,34 @@ bash <(curl -fsSL https://raw.githubusercontent.com/dododook/Norrna/main/scripts
 
 脚本会同时把 Agent 二进制放到 `/etc/norrna-manager/norrna`，供面板一键部署下载。
 
+### Docker 安装面板
+
+需要 Docker 和 Compose。镜像支持 **amd64** 和 **arm64**。
+
+```bash
+mkdir -p norrna && cd norrna
+curl -fsSL -o docker-compose.yml \
+  https://raw.githubusercontent.com/dododook/Norrna/main/docker-compose.yml
+docker compose up -d
+```
+
+或从源码构建：
+
+```bash
+git clone https://github.com/dododook/Norrna.git
+cd Norrna
+docker compose up -d --build
+```
+
+打开 `http://服务器IP:3000`。数据在 Docker volume `norrna-data`。改端口编辑 compose 里的 `ports` 和 `WEBPORT` / `AGENTPORT`。
+
+Agent 仍装在节点机上（不要装进这个容器）。安全组放行 **3000**（网页）和 **3001**（Agent 接入）。
+
+```bash
+docker compose logs -f
+docker compose pull && docker compose up -d
+```
+
 ### 2. 安装 Agent
 
 面板 → 添加 Agent → 复制部署命令，在 **节点机** 上执行，例如：
@@ -70,6 +98,7 @@ Agent 卡片 **解锁**：测这台机器自己的网卡出口。落地机请把
 | Web | `http://IP:3000` |
 | Agent 端口 | `3001` |
 | systemd | `norrna-manager` |
+| Docker 镜像 | `ghcr.io/dododook/norrna` |
 
 ### Agent
 
